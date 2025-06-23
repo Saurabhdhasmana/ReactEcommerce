@@ -483,6 +483,9 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                     <thead className="table-primary">
                       <tr>
                         <th>Product Variant Name</th>
+                        <th>Base Price (Excl. GST)</th>
+                        <th>Price (Incl. GST)</th>
+                        <th>GST (18%)</th>
                         <th>MRP Price</th>
                         <th>Sale Price</th>
                         <th>SKU</th>
@@ -494,6 +497,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                       {variantCombinations.map(combo => {
                         const key = combo.join("|");
                         const details = variantDetails[key] || {};
+                        // Calculate GST and price including GST
+                        const basePrice = parseFloat(details.basePrice || "");
+                        const gst = basePrice ? (basePrice * 0.18).toFixed(2) : "";
+                        const priceInclGST = basePrice ? (basePrice * 1.18).toFixed(2) : "";
                         return (
                           <tr key={key}>
                             <td>
@@ -501,6 +508,31 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                                 className="form-control shadow-sm"
                                 value={combo.join(" ")}
                                 readOnly
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control shadow-sm"
+                                placeholder="Base Price"
+                                value={details.basePrice || ""}
+                                onChange={e => handleComboDetailChange(combo, "basePrice", e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="form-control shadow-sm bg-light"
+                                value={priceInclGST}
+                                readOnly
+                                tabIndex={-1}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                className="form-control shadow-sm bg-light"
+                                value={gst}
+                                readOnly
+                                tabIndex={-1}
                               />
                             </td>
                             <td>

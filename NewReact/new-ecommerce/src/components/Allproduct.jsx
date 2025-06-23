@@ -177,85 +177,123 @@ const Allproduct = () => {
                     <th>Product Image</th>
                     <th>Category</th>
                     <th>Brand</th>
-                    <th>Price</th>
+                    <th>Price (Incl. GST)</th>
+                    <th>GST (18%)</th>
                     <th>Mrp Price</th>
                     <th>Sale Price</th>
                     <th>Unit</th>
                     <th>Qty</th>
                     <th>Created At</th>
                     <th>Status</th>
-
                   </tr>
                 </thead>
                 <tbody>
                   {products.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="text-center">No products found.</td>
+                      <td colSpan={12} className="text-center">No products found.</td>
                     </tr>
                   )}
 
-                  {products.map(product => (
-                    <tr key={product._id}>
-                      <td> {product.name}</td>
-                      <td>
-                        <div className="d-flex align-items-center">
-                          {product.image && (
-                            <img
-                              src={`http://localhost:3000/images/uploads/${product.image}`}
-                              alt={product.name}
-                              style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
-                            />
-                          )}
-
-                        </div>
-                      </td>
-
-                      <td>
-                        {typeof product.category === "object"
-                          ? product.category?.name
-                          : product.category}
-                      </td>
-                      <td>
-                        {typeof product.brand === "object"
-                          ? product.brand?.name
-                          : product.brand}
-                      </td>
-                      <td>{product?.price || 0}</td>
-                      <td>{product?.mrpPrice || 0}</td>
-                      <td>{product?.salePrice || 0}</td>
-                      <td>{product?.unit || 0}</td>
-                      <td>
-
-                        {product.variants && product.variants.length > 0
-                          ? product.variants.reduce((sum, v) => sum + (v.openingStock || 0), 0)
-                          : 0}
-                      </td>
-                      <td>{product.createdAt ? new Date(product.createdAt).toLocaleDateString() : ""}</td>
-                      <td class="action-table-data">
-                        <div class="edit-delete-action">
-                          <a class="me-2 edit-icon  p-2" href="product-details.html">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                          </a>
-
-                          <a className="me-2 p-2"
-                            href="#"
-                            onClick={e => {
-                              e.preventDefault();
-                              handleEditClick(product);
-                            }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                          </a>
-
-                          <a data-bs-toggle="modal" data-bs-target="#delete-modal" class="p-2" href="javascript:void(0);" onClick={() => handleSoftDelete(product._id)}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                          </a>
-                        </div>
-                      </td>
-
-                    </tr>
-
-
-                  ))}
+                  {products.map(product => {
+                    // If product has variants, show each variant as a row
+                    if (product.variants && product.variants.length > 0) {
+                      return product.variants.map((variant, idx) => {
+                        const basePrice = parseFloat(variant.price || 0);
+                        const gst = (basePrice * 0.18).toFixed(2);
+                        const priceInclGst = (basePrice * 1.18).toFixed(2);
+                        return (
+                          <tr key={product._id + '-' + idx}>
+                            <td>{product.name}</td>
+                            <td>
+                              <div className="d-flex align-items-center">
+                                {product.image && (
+                                  <img
+                                    src={`http://localhost:3000/images/uploads/${product.image}`}
+                                    alt={product.name}
+                                    style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
+                                  />
+                                )}
+                              </div>
+                            </td>
+                            <td>{typeof product.category === "object" ? product.category?.name : product.category}</td>
+                            <td>{typeof product.brand === "object" ? product.brand?.name : product.brand}</td>
+                            <td>{priceInclGst}</td>
+                            <td>{gst}</td>
+                            <td>{variant.mrpPrice || 0}</td>
+                            <td>{variant.salePrice || 0}</td>
+                            <td>{variant.unit || product.unit || 0}</td>
+                            <td>{variant.openingStock || 0}</td>
+                            <td>{product.createdAt ? new Date(product.createdAt).toLocaleDateString() : ""}</td>
+                            <td className="action-table-data">
+                              <div className="edit-delete-action">
+                                <a className="me-2 edit-icon  p-2" href="product-details.html">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                </a>
+                                <a className="me-2 p-2"
+                                  href="#"
+                                  onClick={e => {
+                                    e.preventDefault();
+                                    handleEditClick(product);
+                                  }}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </a>
+                                <a data-bs-toggle="modal" data-bs-target="#delete-modal" className="p-2" href="javascript:void(0);" onClick={() => handleSoftDelete(product._id)}>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                </a>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    } else {
+                      // No variants, show main product info
+                      const price = parseFloat(product?.price || 0);
+                      const gst = price ? (price / 1.18 * 0.18).toFixed(2) : "0.00";
+                      return (
+                        <tr key={product._id}>
+                          <td>{product.name}</td>
+                          <td>
+                            <div className="d-flex align-items-center">
+                              {product.image && (
+                                <img
+                                  src={`http://localhost:3000/images/uploads/${product.image}`}
+                                  alt={product.name}
+                                  style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
+                                />
+                              )}
+                            </div>
+                          </td>
+                          <td>{typeof product.category === "object" ? product.category?.name : product.category}</td>
+                          <td>{typeof product.brand === "object" ? product.brand?.name : product.brand}</td>
+                          <td>{price.toFixed(2)}</td>
+                          <td>{gst}</td>
+                          <td>{product?.mrpPrice || 0}</td>
+                          <td>{product?.salePrice || 0}</td>
+                          <td>{product?.unit || 0}</td>
+                          <td>{product.variants && product.variants.length > 0 ? product.variants.reduce((sum, v) => sum + (v.openingStock || 0), 0) : 0}</td>
+                          <td>{product.createdAt ? new Date(product.createdAt).toLocaleDateString() : ""}</td>
+                          <td className="action-table-data">
+                            <div className="edit-delete-action">
+                              <a className="me-2 edit-icon  p-2" href="product-details.html">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                              </a>
+                              <a className="me-2 p-2"
+                                href="#"
+                                onClick={e => {
+                                  e.preventDefault();
+                                  handleEditClick(product);
+                                }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                              </a>
+                              <a data-bs-toggle="modal" data-bs-target="#delete-modal" className="p-2" href="javascript:void(0);" onClick={() => handleSoftDelete(product._id)}>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  })}
 
                 </tbody>
               </table>
