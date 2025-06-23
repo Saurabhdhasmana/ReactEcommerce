@@ -1,28 +1,23 @@
 require("dotenv").config();
-
 const express = require('express');
 const path = require('path');
 const connectToDb = require("./config/mongoose");
 const { upload, cpUpload } = require("./middleware/multer");
-const categoryModel = require("./models/categoryModel");
-const subcategoryModel = require("./models/subcategoryModel");
-const BrandModel = require("./models/BrandModel");
 const variantModel = require("./models/VariantModel");
 const Product = require("./models/ProductModel");
 const Coupon = require("./models/CouponModel");
 const userModel = require("./models/userModel");
-const Order=require("./models/OrderModel");
-const OrderItem=require("./models/OrderItemModel");
-const ComboProduct=require("./models/comboproductModel");
-const Review=require("./models/productreviewModel")
-const adminAuth=require("./middleware/authMiddleware");
+const Order = require("./models/OrderModel");
+const OrderItem = require("./models/OrderItemModel");
+const ComboProduct = require("./models/comboproductModel");
+const Review = require("./models/productreviewModel")
+const adminAuth = require("./middleware/authMiddleware");
 
-
-//from routes folder
+//from routes folder..
 const userRoutes = require("./routes/userRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const subcategoryRoutes = require("./routes/subCategoryRoutes");
-const brandRoutes=require("./routes/brandRoutes");
+const brandRoutes = require("./routes/brandRoutes");
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -32,7 +27,6 @@ const cors = require('cors');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve public folder statically (for images, icons, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
@@ -42,139 +36,12 @@ app.get('/', (req, res) => {
   res.send('Hello World..');
 });
 
-// CATEGORY ROUTES
 app.use("/api", categoryRoutes);
 app.use("/api", userRoutes);
-app.use("/api",subcategoryRoutes);
-app.use("/api",brandRoutes);
+app.use("/api", subcategoryRoutes);
+app.use("/api", brandRoutes);
 
-//delete kr pehle neeche ke 2 ko
-app.get('/api/category', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const total = await categoryModel.countDocuments();
-    const totalPages = Math.ceil(total / limit);
 
-    const category = await categoryModel.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    res.json({
-      category,
-      totalPages,
-      currentPage: page,
-      totalItems: total
-    });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.delete("/api/subcategory/:id", async (req, res) => {
-  try {
-    const deleted = await subcategoryModel.findByIdAndDelete(req.params.id);
-    if (deleted) {
-      res.status(200).json({
-        message: "Subcategory deleted successfully",
-        data: deleted
-      });
-    } else {
-      res.status(404).json({
-        message: "Subcategory not found"
-      });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-//Brand
-
-app.post("/api/brand", upload.single("image"), async (req, res) => {
-  try {
-    const { name, status } = req.body;
-    if (!req.file) {
-      return res.status(400).json({ error: "Brand image is required" });
-    }
-    if (!name) {
-      return res.status(400).json({ error: "Brand name is required" });
-    }
-    const image = req.file.filename;
-    const statusBool = status === "true" || status === true || status === 1 || status === "Active";
-    const brand = await BrandModel.create({
-      name,
-      image,
-      status: typeof status === "undefined" ? true : statusBool,
-    });
-    res.status(201).json({ message: "Brand created successfully", brand });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-app.use("/api",brandRoutes);
-// Get All Brands (no pagination)
-app.get("/api/brand", async (req, res) => {
-  try {
-    let { page = 1, limit = 10 } = req.query;
-    page = parseInt(page);
-    limit = parseInt(limit);
-
-    const total = await BrandModel.countDocuments();
-    const brands = await BrandModel.find()
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
-
-    res.json({
-      brands,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Update Brand
-app.put("/api/brand/:id", upload.single("image"), async (req, res) => {
-  try {
-    const { name, status } = req.body;
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (typeof status !== "undefined") {
-      updateData.status = status === "true" || status === true || status === 1 || status === "Active";
-    }
-    if (req.file) updateData.image = req.file.filename;
-
-    const updated = await BrandModel.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if (updated) {
-      res.json({ message: "Brand updated successfully", brand: updated });
-    } else {
-      res.status(404).json({ error: "Brand not found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// Delete Brand
-app.delete("/api/brand/:id", async (req, res) => {
-  try {
-    const deleted = await BrandModel.findByIdAndDelete(req.params.id);
-    if (deleted) {
-      res.json({ message: "Brand deleted successfully", brand: deleted });
-    } else {
-      res.status(404).json({ error: "Brand not found" });
-    }
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-// variants
 
 app.get('/api/variants', async (req, res) => {
   try {
@@ -237,8 +104,6 @@ app.delete("/api/variants/:id", async (req, res) => {
   }
 });
 //product 
-
-
 app.get('/api/product', async (req, res) => {
   try {
     const products = await Product.find({ deletedAt: null })
@@ -289,23 +154,23 @@ function generateSlug(name) {
 app.post('/api/product', cpUpload, async (req, res) => {
   try {
     const data = req.body;
-    // Parse JSON fields if needed
+
     if (typeof data.variants === "string") data.variants = JSON.parse(data.variants);
     if (data.productBenefits) data.productBenefits = JSON.parse(data.productBenefits);
     if (data.productFeatures) data.productFeatures = JSON.parse(data.productFeatures);
     if (data.productVideos) data.productVideos = JSON.parse(data.productVideos);
 
-    // Multer .any() => req.files is array
+
     const files = req.files || [];
 
-    // Single image
+
     const imageFile = files.find(f => f.fieldname === 'image');
     if (imageFile) data.image = imageFile.filename;
 
     // Multiple images
     data.images = files.filter(f => f.fieldname === 'images').map(f => f.filename);
 
-    // Product Benefits images
+
     if (data.productBenefits && Array.isArray(data.productBenefits)) {
       // Sirf ek hi section hai, index 0
       const benefitFiles = files.filter(f => f.fieldname === `productBenefitsImages0`);
@@ -331,8 +196,8 @@ app.post('/api/product', cpUpload, async (req, res) => {
     }
     // SKU
     data.sku = "SKU-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-  // status
-     let { status } = req.body;
+    // status
+    let { status } = req.body;
     let statusBool = status === "true" || status === true || status === 1 || status === "Active";
     data.status = statusBool;
     const product = new Product(data);
@@ -342,7 +207,7 @@ app.post('/api/product', cpUpload, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-// ...existing code...soft delete product
+// ye hai soft delete product..
 app.put('/api/product/soft-delete/:id', async (req, res) => {
   try {
     const deletedProduct = await Product.findByIdAndUpdate(
@@ -355,9 +220,7 @@ app.put('/api/product/soft-delete/:id', async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
-app.put('/api/product/:id', cpUpload,  async (req, res) => {
+app.put('/api/product/:id', cpUpload, async (req, res) => {
   try {
     const data = req.body;
     // Parse JSON fields if needed
@@ -399,7 +262,7 @@ app.put('/api/product/:id', cpUpload,  async (req, res) => {
       });
     }
 
-    // Slug
+    // Slug 
     if (data.name) {
       data.slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 60);
     }
@@ -411,15 +274,12 @@ app.put('/api/product/:id', cpUpload,  async (req, res) => {
   }
 });
 //create coupon
-app.post("/api/coupon",  async (req, res) => {
+app.post("/api/coupon", async (req, res) => {
   try {
     const {
       name, code, description, discountType, discountValue,
       startDate, endDate, maxUses, minOrderAmount, /*products,*/ isActive
     } = req.body;
-    // If "ALL" is selected, save empty array (means all products)
-    //  let productsToSave = Array.isArray(products) && products.includes("ALL") ? [] : products;
-
 
     const coupon = new Coupon({
       name,
@@ -453,7 +313,7 @@ app.get('/api/coupon', async (req, res) => {
 });
 
 //update coupon
-app.put('/api/coupon/:id',  async (req, res) => {
+app.put('/api/coupon/:id', async (req, res) => {
   try {
     const updated = await Coupon.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json({ message: "Coupon updated", coupon: updated });
@@ -463,7 +323,7 @@ app.put('/api/coupon/:id',  async (req, res) => {
 });
 
 //delete coupon
-app.delete('/api/coupon/:id',  async (req, res) => {
+app.delete('/api/coupon/:id', async (req, res) => {
   try {
     await Coupon.findByIdAndDelete(req.params.id);
     res.json({ message: "Coupon deleted" });
@@ -471,7 +331,6 @@ app.delete('/api/coupon/:id',  async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 function isCouponApplicable(coupon, productId) {
   if (!coupon.products || coupon.products.length === 0) {
     return true;
@@ -491,24 +350,13 @@ app.post('/api/coupon/validate', async (req, res) => {
     if (coupon.endDate && now > coupon.endDate) return res.status(400).json({ error: "Coupon expired" });
     if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) return res.status(400).json({ error: "Coupon usage limit reached" });
     if (coupon.usersUsed && userId && coupon.usersUsed.includes(userId)) return res.status(400).json({ error: "You have already used this coupon" });
-
-    // Filter only applicable products
-    //const applicableItems = (!coupon.products || coupon.products.length === 0)
-    //  ? cartItems
-    // : cartItems.filter(item => coupon.products.map(String).includes(String(item.productId)));
-
-    // if (applicableItems.length === 0) {
-    // return res.status(400).json({ error: "Coupon not valid for these products" });
-    //}
     const applicableItems = cartItems;
-    // Calculate applicable total
+
     const applicableTotal = applicableItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // Min order amount check (on applicable total)
     if (coupon.minOrderAmount && applicableTotal < coupon.minOrderAmount) {
       return res.status(400).json({ error: "Order amount too low for this coupon" });
     }
-
     // Calculate discount only on applicable total
     let discount = 0;
     if (coupon.discountType === "percentage") {
@@ -521,13 +369,8 @@ app.post('/api/coupon/validate', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-//admin login
 
-
-
-
-
-app.post("/api/orders",async (req,res)=>{
+app.post("/api/orders", async (req, res) => {
   try {
     const {
       user_id,
@@ -544,7 +387,7 @@ app.post("/api/orders",async (req,res)=>{
       remarks
     } = req.body;
 
-   const order = await Order.create({
+    const order = await Order.create({
       user_id,
       items: [],
       totalAmount,
@@ -574,7 +417,7 @@ app.post("/api/orders",async (req,res)=>{
       });
       orderItemIds.push(orderItem._id);
     }
-   order.items = orderItemIds;
+    order.items = orderItemIds;
     await order.save();
 
     res.status(201).json({ message: "Order created", order });
@@ -637,17 +480,12 @@ app.put("/api/orders/item/:itemId/soft-delete", async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
-//combo products
-
-// GET all active products
-
-/* ---------- PRODUCTS (dummy fetch) ---------- */
+//get all product hai..
 app.get("/api/products", async (_req, res) => {
-   res.json(
+  res.json(
     await Product.find({
       status: true,
-      deletedAt: { $ne: null } // not equal to null
+      deletedAt: { $ne: null }
     }).select("name _id")
   );
 });
@@ -663,7 +501,7 @@ app.get("/api/combos", async (req, res) => {
       .limit(limit).lean()
       .populate("comboProducts", "name image");
 
-     console.log("Combos fetched:", JSON.stringify(combos, null, 2));
+    console.log("Combos fetched:", JSON.stringify(combos, null, 2));
 
     const total = await ComboProduct.countDocuments();
 
@@ -703,10 +541,6 @@ app.delete("/api/combos/:id", async (req, res) => {
   res.json({ message: "Combo deleted" });
 });
 
-//product Review
-// Route: POST /api/reviews
-// Middleware: requireAuth (only logged-in users)
-
 // PRODUCT REVIEW ROUTES
 const requireAuth = (req, res, next) => {
   // Dummy auth for now, replace with real auth in production
@@ -716,7 +550,6 @@ const requireAuth = (req, res, next) => {
   }
   next();
 };
-
 // Add a review (user must be logged in)
 app.post("/api/reviews", requireAuth, async (req, res) => {
   try {
@@ -737,7 +570,6 @@ app.post("/api/reviews", requireAuth, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
 // Get all approved reviews for a product
 app.get("/api/products/:id/reviews", async (req, res) => {
   try {
@@ -796,8 +628,7 @@ app.delete("/api/reviews/:id", requireAuth, async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 });
-
-
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
 });
+

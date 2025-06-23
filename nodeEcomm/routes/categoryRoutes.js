@@ -7,6 +7,6 @@ const adminAuth=require("../middleware/authMiddleware");
 router.get("/category",getallCategories);
 router.post("/category",upload.single("image"),createCategory);
 router.put("/category/:id",upload.single("image"),updateCategory);
-router.delete("/deleteCategory/:id",adminAuth,deleteCategory);
+router.delete("/category/:id",deleteCategory);
 
 module.exports = router;

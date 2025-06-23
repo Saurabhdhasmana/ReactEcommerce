@@ -409,7 +409,7 @@ const Brand = () => {
       {/* Add Brand Modal */}
       {showAddBrandModal && (
         <div className="modal fade show" id="add-brand" aria-modal="true" role="dialog" style={{ display: "block", paddingLeft: 0 }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modal-dialog-top">
             <div className="modal-content">
               <div className="modal-header">
                 <div className="page-title">
@@ -485,7 +485,7 @@ const Brand = () => {
       {/* Edit Brand Modal */}
       {showEditBrandModal && (
         <div className="modal fade show" id="edit-brand" aria-modal="true" role="dialog" style={{ display: "block", paddingLeft: 0 }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog modal-dialog-top">
             <div className="modal-content">
               <div className="modal-header">
                 <div className="page-title">
