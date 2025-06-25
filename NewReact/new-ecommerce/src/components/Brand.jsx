@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 
 const Brand = () => {
   const [showAddBrandModal, setShowAddBrandModal] = useState(false);
@@ -62,15 +63,19 @@ const Brand = () => {
     if (form.image) formData.append("image", form.image);
 
     try {
-      await fetch("http://localhost:3000/api/brand", {
+      const res = await fetch("http://localhost:3000/api/brand", {
         method: "POST",
         body: formData,
       });
-      setShowAddBrandModal(false);
-      setForm({ name: "", image: null, status: true });
-      fetchBrands(1, limit); // Go to first page after add
+      if (!res.ok) throw new Error("Failed to add brand");
+      toast.success("Brand added successfully!");
+      setTimeout(() => {
+        setShowAddBrandModal(false);
+        setForm({ name: "", image: null, status: true });
+        fetchBrands(1, limit); // Go to first page after add
+      }, 800);
     } catch (err) {
-      // handle error
+      toast.error("Failed to add brand");
     }
   };
 
@@ -94,16 +99,20 @@ const Brand = () => {
     if (form.image) formData.append("image", form.image);
 
     try {
-      await fetch(`http://localhost:3000/api/brand/${editId}`, {
+      const res = await fetch(`http://localhost:3000/api/brand/${editId}`, {
         method: "PUT",
         body: formData,
       });
-      setShowEditBrandModal(false);
-      setEditId(null);
-      setForm({ name: "", image: null, status: true });
-      fetchBrands(page, limit);
+      if (!res.ok) throw new Error("Failed to update brand");
+      toast.success("Brand updated successfully!");
+      setTimeout(() => {
+        setShowEditBrandModal(false);
+        setEditId(null);
+        setForm({ name: "", image: null, status: true });
+        fetchBrands(page, limit);
+      }, 800);
     } catch (err) {
-      // handle error
+      toast.error("Failed to update brand");
     }
   };
 

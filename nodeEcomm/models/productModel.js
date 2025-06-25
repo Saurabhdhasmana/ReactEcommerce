@@ -21,6 +21,7 @@ const productSchema = new mongoose.Schema({
   mrpPrice: Number,
   salePrice: Number,
   unit: String,
+  gst: { type: Number, required: true },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'category' },
   subcategory: { type: mongoose.Schema.Types.ObjectId, ref: 'subcategory' },
   descriptionShort: String,

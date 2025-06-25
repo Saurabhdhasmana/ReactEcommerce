@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import  Header  from './components/Header.jsx'
 import  Footer  from './components/Footer.jsx'
@@ -12,6 +11,7 @@ import ProductForm from './components/Product.jsx'
 import Allproduct from './components/Allproduct.jsx'
 import CouponForm from './components/CouponForm.jsx'
 import Comboproduct from './components/Comboproduct.jsx'
+import { ToastContainer } from 'react-toastify';
 
 import './assets/css/bootstrap.min.css'
 import './assets/css/bootstrap-datetimepicker.min.css'
@@ -23,10 +23,12 @@ import './assets/plugins/fontawesome/css/fontawesome.min.css'
 import './assets/plugins/fontawesome/css/all.min.css'
 import './components/Variants.jsx'
 import './assets/css/style.css'
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <div className="main-wrapper">
         <Header />
         <Sidebar />         

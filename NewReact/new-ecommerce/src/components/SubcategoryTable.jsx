@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import { toast } from 'react-toastify';
 
 const SubcategoryTable = () => {
   const [categories, setCategories] = useState([]);
@@ -102,8 +103,9 @@ const SubcategoryTable = () => {
       });
       setPage(1); // Show new item on first page
       fetchSubcategories(1);
+      toast.success('Subcategory added successfully!', { position: 'top-right', autoClose: 3000, theme: 'colored' });
     } else {
-      alert("Failed to add subcategory");
+      toast.error('Failed to add subcategory', { position: 'top-right', autoClose: 3000, theme: 'colored' });
     }
   };
 
@@ -137,8 +139,9 @@ const SubcategoryTable = () => {
     if (res.ok) {
       setEditModalOpen(false);
       fetchSubcategories(page); // Refetch after update
+      toast.success('Subcategory updated successfully!', { position: 'top-right', autoClose: 3000, theme: 'colored' });
     } else {
-      Swal.fire("Error!", "Failed to update subcategory.", "error");
+      toast.error('Failed to update subcategory.', { position: 'top-right', autoClose: 3000, theme: 'colored' });
     }
   };
 

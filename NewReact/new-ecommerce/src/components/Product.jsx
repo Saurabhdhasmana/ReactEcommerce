@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import { FaPlus, FaMinus } from "react-icons/fa";
+import { toast } from 'react-toastify';
+
 const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
   // Product fields
   const [name, setName] = useState("");
@@ -33,6 +35,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
   ]);
   const [productVideos, setProductVideos] = useState([{ link: "" }]);
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState('basic');
+  const [gstPercent, setGstPercent] = useState(18); // Default GST rate
+
   // Fetch dropdown data
   useEffect(() => {
     fetch("/api/category").then(res => res.json()).then(data => setCategories(data.category || []));
@@ -62,6 +68,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
       setDescriptionLong(editProduct.descriptionLong || "");
       setStatus(editProduct.status !== undefined ? editProduct.status : true);
       setBrand(editProduct.brand?._id || editProduct.brand || "");
+      setGstPercent(editProduct.gst || 18); // <-- Set GST dropdown value from product
       setProductBenefits(editProduct.productBenefits && editProduct.productBenefits.length > 0
         ? editProduct.productBenefits
         : [{ images: [] }]
@@ -165,12 +172,20 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
   // Handle details for each combination
   const handleComboDetailChange = (combo, field, value) => {
     const key = combo.join("|");
-    setVariantDetails({
-      ...variantDetails,
-      [key]: {
-        ...variantDetails[key],
-        [field]: value
+    setVariantDetails(prev => {
+      const updated = {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          [field]: value
+        }
+      };
+      // If basePrice is updated, also update price and salePrice
+      if (field === "basePrice") {
+        updated[key].price = value;
+        updated[key].salePrice = value;
       }
+      return updated;
     });
   };
 
@@ -250,6 +265,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
     formData.append('descriptionLong', descriptionLong);
     formData.append('status', status);
     formData.append('brand', brand);
+    formData.append('gst', gstPercent);
     formData.append('variants', JSON.stringify(variants));
 
     formData.append('productBenefits', JSON.stringify([{ images: [] }]));
@@ -283,418 +299,415 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
     });
     const data = await res.json();
     if (data && data._id) {
-      alert(editProduct ? "Product updated!" : "Product created!");
-      if (editProduct && onProductUpdated) onProductUpdated();
-      // onProductAdded sirf create ke liye hota hai, edit me nahi
+      toast.success(editProduct ? "Product updated successfully!" : "Product created successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored"
+      });
+      if (onProductUpdated) onProductUpdated();
+      if (!editProduct) {
+        // Reset form after adding new product
+        setName("");
+        setImageFile(null);
+        setImagesArray([]);
+        setPrice("");
+        setMrpPrice("");
+        setSalePrice("");
+        setUnit("");
+        setCategory("");
+        setSubcategory("");
+        setDescriptionShort("");
+        setDescriptionLong("");
+        setStatus(true);
+        setBrand("");
+        setSelectedVariants([]);
+        setVariantValues({});
+        setVariantCombinations([]);
+        setVariantDetails({});
+        setProductBenefits([{ images: [] }]);
+        setProductFeatures([{ title: "", description: "", image: null }]);
+        setProductVideos([{ link: "" }]);
+        // Delay closing so toast is visible
+        if (onClose) setTimeout(onClose, 1200);
+      } else {
+        // For update, also delay close
+        if (onClose) setTimeout(onClose, 1200);
+      }
     } else {
-      alert("Error: " + (data.error || "Unknown error"));
+      toast.error("Error: " + (data.error || "Unknown error"), {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored"
+      });
     }
   };
 
 
   return (
-    <div className="page-wrapper pt-0" style={{ background: '#f8f9fa', minHeight: '100vh' }}>
+    <div className="page-wrapper pt-0" style={{ background: '#f4f6fb', minHeight: '100vh' }}>
       <div className="container py-4">
-        <div className="card shadow-lg border-0 mb-4">
-          <div className="card-header bg-primary text-white sticky-top" style={{ zIndex: 2 }}>
-            <h3 className="mb-0">{editProduct ? 'Edit Product' : 'Add New Product'}</h3>
+        <div className="card shadow-lg border-0 mb-4" style={{ borderRadius: 18 }}>
+          <div className="card-header bg-gradient text-white sticky-top d-flex align-items-center" style={{ background: 'linear-gradient(90deg, #4e54c8 0%, #8f94fb 100%)', borderTopLeftRadius: 18, borderTopRightRadius: 18, zIndex: 2 }}>
+            <h3 className="mb-0 flex-grow-1"><span role="img" aria-label="box">📦</span> {editProduct ? 'Edit Product' : 'Add New Product'}</h3>
+            <button type="button" className="btn btn-light btn-sm ms-2" onClick={onClose} style={{ borderRadius: 8 }}>Close</button>
           </div>
-          <div className="card-body">
+          <div className="card-body p-4">
+            {/* Tab Navigation */}
+            <ul className="nav nav-tabs mb-4" style={{ borderBottom: '2px solid #e0e3ea' }}>
+              <li className="nav-item">
+                <button className={`nav-link ${activeTab === 'basic' ? 'active' : ''}`} type="button" onClick={() => setActiveTab('basic')}><span role="img" aria-label="info">📝</span> Basic Info</button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeTab === 'variants' ? 'active' : ''}`} type="button" onClick={() => setActiveTab('variants')}><span role="img" aria-label="variants">🧩</span> Variants</button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeTab === 'benefits' ? 'active' : ''}`} type="button" onClick={() => setActiveTab('benefits')}><span role="img" aria-label="benefits">🌟</span> Benefits</button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeTab === 'features' ? 'active' : ''}`} type="button" onClick={() => setActiveTab('features')}><span role="img" aria-label="features">✨</span> Features</button>
+              </li>
+              <li className="nav-item">
+                <button className={`nav-link ${activeTab === 'videos' ? 'active' : ''}`} type="button" onClick={() => setActiveTab('videos')}><span role="img" aria-label="videos">🎬</span> Videos</button>
+              </li>
+            </ul>
             <form onSubmit={handleSubmit}>
-              <div className="row g-4">
-                <div className="col-md-6">
-                  <label className="form-label fw-bold">Product Name</label>
-                  <input
-                    name="name"
-                    required
-                    className="form-control mb-2 shadow-sm"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label fw-bold">Image</label>
-                  {editProduct && editProduct.image && (
-                    <img
-                      src={`http://localhost:3000/images/uploads/${editProduct.image}`}
-                      alt="Product"
-                      className="d-block mb-2 rounded shadow-sm border"
-                      style={{ width: 60 }}
-                    />
-                  )}
-                  <input
-                    type="file"
-                    className="form-control mb-2 shadow-sm"
-                    onChange={e => setImageFile(e.target.files[0])}
-                  />
-                </div>
-                <div className="col-md-12">
-                  <label className="form-label fw-bold">Images (Multiple)</label>
-                  {editProduct && editProduct.images && editProduct.images.length > 0 && (
-                    <div className="mb-2">
-                      {editProduct.images.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={`http://localhost:3000/images/uploads/${img}`}
-                          alt="Product"
-                          className="me-2 mb-1 rounded shadow-sm border"
-                          style={{ width: 40 }}
+              {/* Tab Content */}
+              <div>
+                {activeTab === 'basic' && (
+                  <div className="p-4 bg-white rounded shadow-sm" style={{ borderLeft: '5px solid #4e54c8' }}>
+                    <h5 className="fw-bold mb-3 text-primary"><span role="img" aria-label="info">📝</span> Basic Information</h5>
+                    <div className="row">
+                      {/* Product Name */}
+                      <div className="col-md-6 form-group mb-3">
+                        <label className="form-label fw-bold">Product Name</label>
+                        <input
+                          name="name"
+                          required
+                          className="form-control shadow-sm"
+                          value={name}
+                          onChange={e => setName(e.target.value)}
                         />
+                      </div>
+                     
+                      {/* Price, MRP, Sale Price */}
+                      <div className="col-md-2 form-group mb-3">
+                        <label className="form-label fw-bold">MRP Price</label>
+                        <input
+                          name="mrpPrice"
+                          type="number"
+                          className="form-control shadow-sm"
+                          value={mrpPrice}
+                          onChange={e => setMrpPrice(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-md-2 form-group mb-3">
+                        <label className="form-label fw-bold">Sale Price</label>
+                        <input
+                          name="salePrice"
+                          type="number"
+                          className="form-control shadow-sm"
+                          value={salePrice}
+                          onChange={e => setSalePrice(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-md-2 form-group mb-3">
+                        <label className="form-label fw-bold">GST Rate (%)</label>
+                        <select
+                         name="gst"
+                          className="form-select shadow-sm"
+                          value={gstPercent}
+                          onChange={e => setGstPercent(Number(e.target.value))}
+                          style={{  borderRadius: 8 }}
+                        >
+                          <option value={5}>5% GST</option>
+                          <option value={12}>12% GST</option>
+                          <option value={18}>18% GST</option>
+                        </select>
+                      </div>
+                      {/* Image */}
+                      <div className="col-md-4 form-group mb-3">
+                        <label className="form-label fw-bold">Image</label>
+                        {editProduct && editProduct.image && (
+                          <img
+                            src={`http://localhost:3000/images/uploads/${editProduct.image}`}
+                            alt="Product"
+                            className="d-block mb-2 rounded shadow-sm border"
+                            style={{ width: 60 }}
+                          />
+                        )}
+                        <input
+                          type="file"
+                          className="form-control shadow-sm"
+                          onChange={e => setImageFile(e.target.files[0])}
+                        />
+                      </div>
+                      {/* Images (Multiple) */}
+                      <div className="col-md-6 form-group mb-3">
+                        <label className="form-label fw-bold">Images (Multiple)</label>
+                        {editProduct && editProduct.images && editProduct.images.length > 0 && (
+                          <div className="mb-2">
+                            {editProduct.images.map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={`http://localhost:3000/images/uploads/${img}`}
+                                alt="Product"
+                                className="me-2 mb-1 rounded shadow-sm border"
+                                style={{ width: 40 }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          multiple
+                          className="form-control shadow-sm"
+                          onChange={e => setImagesArray(Array.from(e.target.files))}
+                        />
+                      </div>
+                      <div className="col-md-2 form-group mb-3">
+                        <label className="form-label fw-bold">Status</label>
+                        <select
+                          name="status"
+                          className="form-control shadow-sm"
+                          value={status}
+                          onChange={e => setStatus(e.target.value === "true")}
+                        >
+                          <option value={true}>Active</option>
+                          <option value={false}>Inactive</option>
+                        </select>
+                      </div> 
+                      {/* Unit, Category, Subcategory, Brand */}
+                      <div className="col-md-3 form-group mb-3">
+                        <label className="form-label fw-bold">Unit</label>
+                        <input
+                          name="unit"
+                          className="form-control shadow-sm"
+                          value={unit}
+                          onChange={e => setUnit(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-md-3 form-group mb-3">
+                        <label className="form-label fw-bold">Category</label>
+                        <Select
+                          options={categories.map(c => ({ value: c._id, label: c.name }))}
+                          className="mb-2"
+                          value={categories.find(c => c._id === category) ? { value: category, label: categories.find(c => c._id === category).name } : null}
+                          onChange={option => setCategory(option ? option.value : "")}
+                        />
+                      </div>
+                      <div className="col-md-3 form-group mb-3">
+                        <label className="form-label fw-bold">Subcategory</label>
+                        <Select
+                          options={subcategories.map(sc => ({ value: sc._id, label: sc.name }))}
+                          className="mb-2"
+                          value={subcategories.find(sc => sc._id === subcategory) ? { value: subcategory, label: subcategories.find(sc => sc._id === subcategory).name } : null}
+                          onChange={option => setSubcategory(option ? option.value : "")}
+                        />
+                      </div>
+                      <div className="col-md-3 form-group mb-3">
+                        <label className="form-label fw-bold">Brand</label>
+                        <Select
+                          options={brands.map(b => ({ value: b._id, label: b.name }))}
+                          className="mb-2"
+                          value={brands.find(b => b._id === brand) ? { value: brand, label: brands.find(b => b._id === brand).name } : null}
+                          onChange={option => setBrand(option ? option.value : "")}
+                        />
+                      </div>
+</div>
+                       
+                      {/* Descriptions */}
+                      <div className="col-md-12 form-group mb-3">
+                        <label className="form-label fw-bold">Description (Short)</label>
+                        <textarea
+                          name="descriptionShort"
+                          className="form-control shadow-sm"
+                          value={descriptionShort}
+                          onChange={e => setDescriptionShort(e.target.value)}
+                        />
+                      </div>                 
+
+                      <div className="col-md-12 form-group mb-3">
+                        <label className="form-label fw-bold">Description (Long)</label>
+                        <textarea
+                          name="descriptionLong"
+                          className="form-control shadow-sm"
+                          value={descriptionLong}
+                          onChange={e => setDescriptionLong(e.target.value)}
+                          style={{ minHeight: 150, background: '#fff' }}
+                        />
+                      </div>
+                      {/* Status */}
+                     
+                    </div>
+                )}
+                {activeTab === 'variants' && (
+                  <div className="p-4 bg-white rounded shadow-sm" style={{ borderLeft: '5px solid #8f94fb' }}>
+                    <h5 className="fw-bold mb-3 text-info"><span role="img" aria-label="variants">🧩</span> Variants</h5>
+                    <div className="row mb-3">
+                      <div className="col-md-8">
+                        <label className="form-label fw-bold">Product Attribute Name (Variants)</label>
+                        <Select
+                          isMulti
+                          options={variantOptions}
+                          value={selectedVariants}
+                          onChange={handleVariantChange}
+                          placeholder="Select variants"
+                          className="mb-2"
+                        />
+                      </div>
+                    </div>
+                    <div className="row mb-3">
+                      {selectedVariants.map(v => (
+                        <div key={v.value} className="mb-3 col-md-6">
+                          <label className="form-label fw-bold mb-1" style={{ fontSize: "16px" }}>
+                            {v.label} <span style={{ color: "red" }}>*</span>
+                          </label>
+                          <Select
+                            isMulti
+                            options={v.values.map(val => ({ value: val, label: val }))}
+                            value={(variantValues[v.value] || []).map(val => ({ value: val, label: val }))}
+                            onChange={selected => handleValuesChange(v.value, selected)}
+                            placeholder={`Select ${v.label}`}
+                            className="mb-2"
+                          />
+                        </div>
                       ))}
                     </div>
-                  )}
-                  <input
-                    type="file"
-                    multiple
-                    className="form-control mb-2 shadow-sm"
-                    onChange={e => setImagesArray(Array.from(e.target.files))}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">Price</label>
-                  <input
-                    name="price"
-                    type="number"
-                    className="form-control mb-2 shadow-sm"
-                    value={price}
-                    onChange={e => setPrice(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">MRP Price</label>
-                  <input
-                    name="mrpPrice"
-                    type="number"
-                    className="form-control mb-2 shadow-sm"
-                    value={mrpPrice}
-                    onChange={e => setMrpPrice(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">Sale Price</label>
-                  <input
-                    name="salePrice"
-                    type="number"
-                    className="form-control mb-2 shadow-sm"
-                    value={salePrice}
-                    onChange={e => setSalePrice(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">Unit</label>
-                  <input
-                    name="unit"
-                    className="form-control mb-2 shadow-sm"
-                    value={unit}
-                    onChange={e => setUnit(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">Category</label>
-                  <Select
-                    options={categories.map(c => ({ value: c._id, label: c.name }))}
-                    className="mb-2"
-                    value={categories.find(c => c._id === category) ? { value: category, label: categories.find(c => c._id === category).name } : null}
-                    onChange={option => setCategory(option ? option.value : "")}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">Subcategory</label>
-                  <Select
-                    options={subcategories.map(sc => ({ value: sc._id, label: sc.name }))}
-                    className="mb-2"
-                    value={subcategories.find(sc => sc._id === subcategory) ? { value: subcategory, label: subcategories.find(sc => sc._id === subcategory).name } : null}
-                    onChange={option => setSubcategory(option ? option.value : "")}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">Brand</label>
-                  <Select
-                    options={brands.map(b => ({ value: b._id, label: b.name }))}
-                    className="mb-2"
-                    value={brands.find(b => b._id === brand) ? { value: brand, label: brands.find(b => b._id === brand).name } : null}
-                    onChange={option => setBrand(option ? option.value : "")}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label fw-bold">Description (Short)</label>
-                  <textarea
-                    name="descriptionShort"
-                    className="form-control mb-2 shadow-sm"
-                    value={descriptionShort}
-                    onChange={e => setDescriptionShort(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label fw-bold">Description (Long)</label>
-                  <textarea
-                    name="descriptionLong"
-                    className="form-control mb-2 shadow-sm"
-                    value={descriptionLong}
-                    onChange={e => setDescriptionLong(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-4">
-                  <label className="form-label fw-bold">Status</label>
-                  <select
-                    name="status"
-                    className="form-control mb-2 shadow-sm"
-                    value={status}
-                    onChange={e => setStatus(e.target.value === "true")}
-                  >
-                    <option value={true}>Active</option>
-                    <option value={false}>Inactive</option>
-                  </select>
-                </div>
-                <div className="col-md-8">
-                  <label className="form-label fw-bold">Product Attribute Name (Variants)</label>
-                  <Select
-                    isMulti
-                    options={variantOptions}
-                    value={selectedVariants}
-                    onChange={handleVariantChange}
-                    placeholder="Select variants"
-                    className="mb-2"
-                  />
-                </div>
-              </div>
-              {/* For each selected variant, show value select */}
-              <div className="row mb-3">
-                {selectedVariants.map(v => (
-                  <div key={v.value} className="mb-3 col-md-6">
-                    <label className="form-label fw-bold mb-1" style={{ fontSize: "16px" }}>
-                      {v.label} <span style={{ color: "red" }}>*</span>
-                    </label>
-                    <Select
-                      isMulti
-                      options={v.values.map(val => ({ value: val, label: val }))}
-                      value={(variantValues[v.value] || []).map(val => ({ value: val, label: val }))}
-                      onChange={selected => handleValuesChange(v.value, selected)}
-                      placeholder={`Select ${v.label}`}
-                      className="mb-2"
-                    />
+                    {variantCombinations.length > 0 && (
+                      <div className="table-responsive mb-4">
+                        <table className="table table-bordered align-middle shadow-sm bg-white">
+                          <thead className="table-info">
+                            <tr>
+                              <th>Product Variant Name</th>
+                             
+                              <th>MRP Price</th>
+                              <th>Sale Price</th>
+                              <th>SKU</th>
+                              <th>Opening Stock</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {variantCombinations.map(combo => {
+                              const key = combo.join("|");
+                              const details = variantDetails[key] || {};
+                              return (
+                                <tr key={key}>
+                                  <td>
+                                    <input className="form-control shadow-sm" value={combo.join(" ")} readOnly />
+                                  </td>
+                        
+                                  <td>
+                                    <input type="number" className="form-control shadow-sm" placeholder="MRP" value={details.mrp || ""} onChange={e => handleComboDetailChange(combo, "mrp", e.target.value)} />
+                                  </td>
+                                  <td>
+                                    <input type="number" className="form-control shadow-sm" placeholder="Sale Price" value={details.salePrice || ""} onChange={e => handleComboDetailChange(combo, "salePrice", e.target.value)} />
+                                  </td>
+                                  <td>
+                                    <input className="form-control shadow-sm" value={"-" + combo.map(v => v.toLowerCase()).join("-")} readOnly />
+                                  </td>
+                                  <td>
+                                    <input type="number" className="form-control shadow-sm" placeholder="Opening Stock" value={details.openingStock || ""} onChange={e => handleComboDetailChange(combo, "openingStock", e.target.value)} />
+                                  </td>
+                                  <td>
+                                    <div className="form-check form-switch d-flex justify-content-center">
+                                      <input className="form-check-input" type="checkbox" checked={details.status !== undefined ? details.status : true} onChange={e => handleComboDetailChange(combo, "status", e.target.checked)} />
+                                      <label className="form-check-label ms-2">
+                                        {details.status !== undefined ? (details.status ? 'Active' : 'Inactive') : 'Active'}
+                                      </label>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-              {/* Move the variant table here, above Product Benefits */}
-              {variantCombinations.length > 0 && (
-                <div className="table-responsive mb-4">
-                  <table className="table table-bordered align-middle shadow-sm bg-white">
-                    <thead className="table-primary">
-                      <tr>
-                        <th>Product Variant Name</th>
-                        <th>Base Price (Excl. GST)</th>
-                        <th>Price (Incl. GST)</th>
-                        <th>GST (18%)</th>
-                        <th>MRP Price</th>
-                        <th>Sale Price</th>
-                        <th>SKU</th>
-                        <th>Opening Stock</th>
-                        <th>Publish</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {variantCombinations.map(combo => {
-                        const key = combo.join("|");
-                        const details = variantDetails[key] || {};
-                        // Calculate GST and price including GST
-                        const basePrice = parseFloat(details.basePrice || "");
-                        const gst = basePrice ? (basePrice * 0.18).toFixed(2) : "";
-                        const priceInclGST = basePrice ? (basePrice * 1.18).toFixed(2) : "";
-                        return (
-                          <tr key={key}>
-                            <td>
-                              <input
-                                className="form-control shadow-sm"
-                                value={combo.join(" ")}
-                                readOnly
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                className="form-control shadow-sm"
-                                placeholder="Base Price"
-                                value={details.basePrice || ""}
-                                onChange={e => handleComboDetailChange(combo, "basePrice", e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="form-control shadow-sm bg-light"
-                                value={priceInclGST}
-                                readOnly
-                                tabIndex={-1}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="form-control shadow-sm bg-light"
-                                value={gst}
-                                readOnly
-                                tabIndex={-1}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                className="form-control shadow-sm"
-                                placeholder="MRP"
-                                value={details.mrp || ""}
-                                onChange={e => handleComboDetailChange(combo, "mrp", e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                className="form-control shadow-sm"
-                                placeholder="Sale Price"
-                                value={details.salePrice || ""}
-                                onChange={e => handleComboDetailChange(combo, "salePrice", e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                className="form-control shadow-sm"
-                                value={"-" + combo.map(v => v.toLowerCase()).join("-")}
-                                readOnly
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                className="form-control shadow-sm"
-                                placeholder="Opening Stock"
-                                value={details.openingStock || ""}
-                                onChange={e => handleComboDetailChange(combo, "openingStock", e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <div className="form-check form-switch d-flex justify-content-center">
-                                <input
-                                  className="form-check-input"
-                                  type="checkbox"
-                                  checked={details.status !== undefined ? details.status : true}
-                                  onChange={e => handleComboDetailChange(combo, "status", e.target.checked)}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              <hr className="my-4" />
-              {/* Product Benefits Section */}
-              <div className="mb-4">
-                <h5 className="mb-2 fw-bold">Product Benefits</h5>
-                {editProduct && editProduct.productBenefits && editProduct.productBenefits[0] && editProduct.productBenefits[0].images && (
-                  <div className="mb-2">
-                    {editProduct.productBenefits[0].images.map((img, idx) => (
-                      <img
-                        key={idx}
-                        src={`http://localhost:3000/images/uploads/${img}`}
-                        alt="Benefit"
-                        className="me-2 mb-1 rounded shadow-sm border"
-                        style={{ width: 40 }}
-                      />
+                )}
+                {activeTab === 'benefits' && (
+                  <div className="p-4 bg-white rounded shadow-sm" style={{ borderLeft: '5px solid #43e97b' }}>
+                    <h5 className="fw-bold mb-3 text-success"><span role="img" aria-label="benefits">🌟</span> Benefits</h5>
+                    {editProduct && editProduct.productBenefits && editProduct.productBenefits[0] && editProduct.productBenefits[0].images && (
+                      <div className="mb-2">
+                        {editProduct.productBenefits[0].images.map((img, idx) => (
+                          <img key={idx} src={`http://localhost:3000/images/uploads/${img}`} alt="Benefit" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                        ))}
+                      </div>
+                    )}
+                    <div className="mb-3 border p-2 rounded bg-light">
+                      <label className="form-label fw-bold">Benefit Images (Multiple)</label>
+                      <input type="file" multiple className="form-control shadow-sm" onChange={e => setProductBenefits([{ images: Array.from(e.target.files) }])} />
+                    </div>
+                  </div>
+                )}
+                {activeTab === 'features' && (
+                  <div className="p-4 bg-white rounded shadow-sm" style={{ borderLeft: '5px solid #f7971e' }}>
+                    <h5 className="fw-bold mb-3 text-warning"><span role="img" aria-label="features">✨</span> Features</h5>
+                    {productFeatures.map((feature, idx) => (
+                      <div key={idx} className="row align-items-end mb-2 border p-2 rounded bg-light">
+                        <div className="col-md-3">
+                          <label className="form-label">Title</label>
+                          <input className="form-control shadow-sm" value={feature.title} onChange={e => handleFeatureChange(idx, "title", e.target.value)} />
+                        </div>
+                        <div className="col-md-5">
+                          <label className="form-label">Description</label>
+                          <input className="form-control shadow-sm" value={feature.description} onChange={e => handleFeatureChange(idx, "description", e.target.value)} />
+                        </div>
+                        <div className="col-md-3">
+                          <label className="form-label">Image</label>
+                          {feature.image && typeof feature.image === "string" && (
+                            <img src={`http://localhost:3000/images/uploads/${feature.image}`} alt="Feature" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                          )}
+                          <input type="file" className="form-control shadow-sm" onChange={e => handleFeatureImageChange(idx, e)} />
+                        </div>
+                        <div className="col-md-1 d-flex align-items-center">
+                          {productFeatures.length > 1 && (
+                            <button type="button" className="btn btn-danger btn-sm me-1" onClick={() => removeFeature(idx)}><FaMinus /></button>
+                          )}
+                          <button type="button" className="btn btn-success btn-sm" onClick={addFeature}><FaPlus /></button>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
-                <div className="mb-3 border p-2 rounded bg-light">
-                  <label className="form-label fw-bold">Benefit Images (Multiple)</label>
-                  <input
-                    type="file"
-                    multiple
-                    className="form-control mb-2 shadow-sm"
-                    onChange={e => setProductBenefits([{ images: Array.from(e.target.files) }])}
-                  />
+                {activeTab === 'videos' && (
+                  <div className="p-4 bg-white rounded shadow-sm" style={{ borderLeft: '5px solid #43cea2' }}>
+                    <h5 className="fw-bold mb-3 text-info"><span role="img" aria-label="videos">🎬</span> Videos</h5>
+                    {productVideos.map((video, idx) => (
+                      <div key={idx} className="row align-items-end mb-2">
+                        <div className="col-md-10">
+                          <label className="form-label">Video Link</label>
+                          <input className="form-control shadow-sm" value={video.link} onChange={e => handleVideoChange(idx, e.target.value)} />
+                        </div>
+                        <div className="col-md-2 d-flex align-items-center">
+                          {productVideos.length > 1 && (
+                            <button type="button" className="btn btn-danger btn-sm me-1" onClick={() => removeVideo(idx)}><FaMinus /></button>
+                          )}
+                          <button type="button" className="btn btn-success btn-sm" onClick={addVideo}><FaPlus /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Form Actions */}
+              {activeTab === 'videos' && (
+                <div className="d-flex justify-content-end gap-2 mt-4">
+                  <button type="submit" className="btn btn-gradient px-4 py-2 shadow" style={{ background: 'linear-gradient(90deg, #4e54c8 0%, #8f94fb 100%)', color: '#fff', border: 'none', borderRadius: 8 }}>Save Product</button>
                 </div>
-              </div>
-              <hr className="my-4" />
-              {/* Product Features Section */}
-              <div className="mb-4">
-                <h5 className="mb-2 fw-bold">Product Features</h5>
-                {productFeatures.map((feature, idx) => (
-                  <div key={idx} className="row align-items-end mb-2 border p-2 rounded bg-light">
-                    <div className="col-md-3">
-                      <label className="form-label">Title</label>
-                      <input
-                        className="form-control shadow-sm"
-                        value={feature.title}
-                        onChange={e => handleFeatureChange(idx, "title", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-5">
-                      <label className="form-label">Description</label>
-                      <input
-                        className="form-control shadow-sm"
-                        value={feature.description}
-                        onChange={e => handleFeatureChange(idx, "description", e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label">Image</label>
-                      {feature.image && typeof feature.image === "string" && (
-                        <img
-                          src={`http://localhost:3000/images/uploads/${feature.image}`}
-                          alt="Feature"
-                          className="me-2 mb-1 rounded shadow-sm border"
-                          style={{ width: 40 }}
-                        />
-                      )}
-                      <input
-                        type="file"
-                        className="form-control shadow-sm"
-                        onChange={e => handleFeatureImageChange(idx, e)}
-                      />
-                    </div>
-                    <div className="col-md-1 d-flex align-items-center">
-                      {productFeatures.length > 1 && (
-                        <button type="button" className="btn btn-danger btn-sm me-1" onClick={() => removeFeature(idx)}>
-                          <FaMinus />
-                        </button>
-                      )}
-                      <button type="button" className="btn btn-success btn-sm" onClick={addFeature}>
-                        <FaPlus />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <hr className="my-4" />
-              {/* Product Videos Section */}
-              <div className="mb-4">
-                <h5 className="mb-2 fw-bold">Product Videos</h5>
-                {productVideos.map((video, idx) => (
-                  <div key={idx} className="row align-items-end mb-2">
-                    <div className="col-md-10">
-                      <label className="form-label">Video Link</label>
-                      <input
-                        className="form-control shadow-sm"
-                        value={video.link}
-                        onChange={e => handleVideoChange(idx, e.target.value)}
-                      />
-                    </div>
-                    <div className="col-md-2 d-flex align-items-center">
-                      {productVideos.length > 1 && (
-                        <button type="button" className="btn btn-danger btn-sm me-1" onClick={() => removeVideo(idx)}>
-                          <FaMinus />
-                        </button>
-                      )}
-                      <button type="button" className="btn btn-success btn-sm" onClick={addVideo}>
-                        <FaPlus />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="d-flex justify-content-end gap-2 mt-4">
-                <button type="button" className="btn btn-secondary px-4 py-2" onClick={onClose}>Close</button>
-                <button type="submit" className="btn btn-primary px-4 py-2 shadow">Save Product</button>
-              </div>
+              )}
             </form>
           </div>
         </div>

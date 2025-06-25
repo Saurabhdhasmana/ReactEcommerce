@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 
 const CategoryTable = () => {
     const navigate = useNavigate();
@@ -103,12 +104,12 @@ const CategoryTable = () => {
             if (res.ok) {
                 fetchCategories();
                 closeEditModal();
-                Swal.fire('Updated!', 'Category updated successfully.', 'success');
+                toast.success('Category updated successfully!', { position: 'top-right', autoClose: 3000, theme: 'colored' });
             } else {
-                Swal.fire('Error!', 'Update failed.', 'error');
+                toast.error('Update failed.', { position: 'top-right', autoClose: 3000, theme: 'colored' });
             }
         } catch (err) {
-            Swal.fire('Error!', 'Server error.', 'error');
+            toast.error('Server error.', { position: 'top-right', autoClose: 3000, theme: 'colored' });
         }
     };
 
@@ -130,11 +131,12 @@ const CategoryTable = () => {
                 fetchCategories();
                 closeAddModal();
                 navigate('/category');
+                toast.success('Category added successfully!', { position: 'top-right', autoClose: 3000, theme: 'colored' });
             } else {
-                setMessage(data.error || 'Something went wrong');
+                toast.error(data.error || 'Something went wrong', { position: 'top-right', autoClose: 3000, theme: 'colored' });
             }
         } catch (err) {
-            setMessage('Server error');
+            toast.error('Server error', { position: 'top-right', autoClose: 3000, theme: 'colored' });
         }
     };
 
