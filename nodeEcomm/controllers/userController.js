@@ -23,19 +23,18 @@ const userLogin = async (req, res) => {
 		let user = await userModel.findOne({ email });
 
 		if (!user) {
-			return res.status(404).json({ error: "User not found" });
+			return res.status(404).json({ message: "User not found" });
 		}
 		const isMatch = await bcrypt.compare(password, user.password)
 		if (!isMatch) {
-			return res.status(400).json({ error: "Invalid password" });
+			return res.status(400).json({ message: "Invalid password" });
 		}
 		const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT_SECRET, { expiresIn: "1d" });
-		res.json({ message: "Login successful...", token, user: { id: user._id, name: user.name, email: user.email, password: user.password } });
+		res.json({ message: "Login successful...", token, user: { id: user._id, name: user.name, email: user.email, password: user.password,role:user.isAdmin } });
 
 	} catch (err) {
 		res.status(500).json({ error: "Internal Server error", error: err.message });
 	}
-
 }
 
 const getaSingleUser = async (req, res) => {

@@ -24,6 +24,7 @@ import './assets/plugins/fontawesome/css/all.min.css'
 import './components/Variants.jsx'
 import './assets/css/style.css'
 import 'react-toastify/dist/ReactToastify.css';
+import Dashboard from './components/Dashboard.jsx'
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
              <Route path="/allproducts" element= {<Allproduct />} />
              <Route path="/coupons" element= {<CouponForm/>} />
              <Route path="/comboproducts" element= {<Comboproduct/>} />
+             <Route path="/dashboard" element= {<Dashboard/>} />
            
           </Routes>
         

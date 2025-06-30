@@ -6,13 +6,13 @@ import React from 'react'
 			<div className="main-header">
 				<div className="header-left active">
 					<a href="index.html" className="logo logo-normal">
-						<img src="../assets/img/logo.svg" alt="Img" />
+						<img src="/src//assets/img/logo.svg" alt="Img" />
 					</a>
 					<a href="index.html" className="logo logo-white">
-						<img src="../assets/img/logo-white.svg" alt="Img" />
+						<img src="/src//assets/img/logo-white.svg" alt="Img" />
 					</a>
 					<a href="index.html" className="logo-small">
-						<img src="../assets/img/logo-small.png" alt="Img" />
+						<img src="/src//assets/img/logo-small.png" alt="Img" />
 					</a>
 				</div>
 				<a id="mobile_btn" className="mobile_btn" href="#sidebar">
@@ -37,7 +37,7 @@ import React from 'react'
 										<span><i className="ti ti-search"></i></span>
 									</div>
 									<span className="input-group-text">
-										<kbd className="d-flex align-items-center"><img src="assets/img/icons/command.svg" alt="img" className="me-1" />K</kbd>
+										<kbd className="d-flex align-items-center"><img src="/src//assets/img/icons/command.svg" alt="img" className="me-1" />K</kbd>
 									</span>
 								</div>
 								<div className="dropdown-menu search-dropdown" aria-labelledby="dropdownMenuClickable">

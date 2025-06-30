@@ -4,7 +4,7 @@ const path = require('path');
 const connectToDb = require("./config/mongoose");
 const { upload, cpUpload } = require("./middleware/multer");
 const variantModel = require("./models/VariantModel");
-const Product = require("./models/ProductModel");
+const Product = require("./models/productModel");
 const Coupon = require("./models/CouponModel");
 const userModel = require("./models/userModel");
 const Order = require("./models/OrderModel");
@@ -40,8 +40,6 @@ app.use("/api", categoryRoutes);
 app.use("/api", userRoutes);
 app.use("/api", subcategoryRoutes);
 app.use("/api", brandRoutes);
-
-
 
 app.get('/api/variants', async (req, res) => {
   try {
@@ -117,20 +115,26 @@ app.get('/api/product', async (req, res) => {
   }
 });
 // single product 
+const mongoose = require('mongoose');
 app.get('/api/product/:id', async (req, res) => {
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ error: "Invalid product ID" });
+  }
   try {
     const product = await Product.findById(req.params.id)
       .populate('category')
       .populate('subcategory')
       .populate('brand')
-      .populate('variants.variant')
+      // .populate('variants.variant')
       .populate({
         path: 'reviews',
-        populate: { path: 'user', select: 'name' } // User ka naam bhi laane ke liye
+        populate: { path: 'user', select: 'name' }
       });
     if (!product) return res.status(404).json({ error: "Not found" });
     res.json(product);
   } catch (err) {
+    console.error(err); // This will show the real error in your terminal
     res.status(500).json({ error: "Server error" });
   }
 });
