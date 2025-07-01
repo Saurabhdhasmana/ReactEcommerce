@@ -11,7 +11,7 @@ const Allproduct = () => {
   // Fetch products from backend
   // Fetch products from backend
   const fetchProducts = () => {
-    fetch("http://localhost:3000/api/product")
+    fetch("https://backend-darze-4.onrender.com/api/product")
       .then(res => res.json())
       .then(data => setProducts(data.reverse()));
   };
@@ -21,7 +21,7 @@ const Allproduct = () => {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/product") // Make sure your backend route is /api/product (GET)
+    fetch("https://backend-darze-4.onrender.com/api/product") // Make sure your backend route is /api/product (GET)
       .then(res => res.json())
       .then(data => setProducts(data.reverse())); // reverse for latest first
   }, []);
@@ -44,7 +44,7 @@ const Allproduct = () => {
     });
 
     if (result.isConfirmed) {
-      await fetch(`http://localhost:3000/api/product/soft-delete/${id}`, {
+      await fetch(`https://backend-darze-4.onrender.com/api/product/soft-delete/${id}`, {
         method: "PUT"
       });
       setProducts(products => products.filter(p => p._id !== id));
@@ -201,7 +201,7 @@ const Allproduct = () => {
                           <div className="d-flex align-items-center">
                             {product.image && (
                               <img
-                                src={`http://localhost:3000/images/uploads/${product.image}`}
+                                src={`https://backend-darze-4.onrender.com/images/uploads/${product.image}`}
                                 alt={product.name}
                                 style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
                               />

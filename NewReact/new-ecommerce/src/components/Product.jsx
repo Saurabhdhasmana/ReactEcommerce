@@ -439,7 +439,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                         <label className="form-label fw-bold">Image</label>
                         {editProduct && editProduct.image && (
                           <img
-                            src={`http://localhost:3000/images/uploads/${editProduct.image}`}
+                            src={`https://backend-darze-4.onrender.com/images/uploads/${editProduct.image}`}
                             alt="Product"
                             className="d-block mb-2 rounded shadow-sm border"
                             style={{ width: 60 }}
@@ -459,7 +459,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                             {editProduct.images.map((img, idx) => (
                               <img
                                 key={idx}
-                                src={`http://localhost:3000/images/uploads/${img}`}
+                                src={`https://backend-darze-4.onrender.com/images/uploads/${img}`}
                                 alt="Product"
                                 className="me-2 mb-1 rounded shadow-sm border"
                                 style={{ width: 40 }}
@@ -642,7 +642,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                     {editProduct && editProduct.productBenefits && editProduct.productBenefits[0] && editProduct.productBenefits[0].images && (
                       <div className="mb-2">
                         {editProduct.productBenefits[0].images.map((img, idx) => (
-                          <img key={idx} src={`http://localhost:3000/images/uploads/${img}`} alt="Benefit" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                          <img key={idx} src={`https://backend-darze-4.onrender.com/images/uploads/${img}`} alt="Benefit" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
                         ))}
                       </div>
                     )}
@@ -668,7 +668,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                         <div className="col-md-3">
                           <label className="form-label">Image</label>
                           {feature.image && typeof feature.image === "string" && (
-                            <img src={`http://localhost:3000/images/uploads/${feature.image}`} alt="Feature" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                            <img src={`https://backend-darze-4.onrender.com/images/uploads/${feature.image}`} alt="Feature" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
                           )}
                           <input type="file" className="form-control shadow-sm" onChange={e => handleFeatureImageChange(idx, e)} />
                         </div>

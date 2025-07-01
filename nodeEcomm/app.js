@@ -489,7 +489,7 @@ app.get("/api/products", async (_req, res) => {
   res.json(
     await Product.find({
       status: true,
-      deletedAt: { $ne: null }
+      deletedAt: null
     }).select("name _id")
   );
 });

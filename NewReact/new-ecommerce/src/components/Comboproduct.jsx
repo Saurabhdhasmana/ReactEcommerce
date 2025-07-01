@@ -39,8 +39,12 @@ const ComboProduct = () => {
       .catch(console.error);
   }, []);
 
+  useEffect(() => {
+    console.log(products);
+  }, [products]);
+
   const fetchCombos = (pg = page) => {
-    fetch(`http://localhost:3000/api/combos?page=${pg}&limit=${limit}`)
+    fetch(`https://backend-darze-4.onrender.com/api/combos?page=${pg}&limit=${limit}`)
       .then(res => res.json())
       .then(data => {
         setCombos(data.combos || data);       // backend may send {combos,totalPages}
@@ -80,7 +84,7 @@ const ComboProduct = () => {
   /* ------------ submit ------------ */
   const handleAddSubmit = async (e) => {
     e.preventDefault();
-    await fetch("http://localhost:3000/api/combos", {
+    await fetch("https://backend-darze-4.onrender.com/api/combos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -94,7 +98,7 @@ const ComboProduct = () => {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    await fetch(`http://localhost:3000/api/combos/${editData._id}`, {
+    await fetch(`https://backend-darze-4.onrender.com/api/combos/${editData._id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -112,7 +116,7 @@ const ComboProduct = () => {
       showCancelButton: true, confirmButtonText: "Yes"
     })).isConfirmed;
     if (!ok) return;
-    await fetch(`http://localhost:3000/api/combos/${id}`, { method: "DELETE" });
+    await fetch(`https://backend-darze-4.onrender.com/api/combos/${id}`, { method: "DELETE" });
     fetchCombos(page);
     Swal.fire("Deleted", "", "success");
   };
