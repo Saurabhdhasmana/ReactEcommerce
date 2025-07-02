@@ -100,6 +100,8 @@ const Sidebar = () => {
 											<li><Link to="/products"><i className="ti ti-table-plus fs-16 me-2"></i><span>Create Product</span></Link></li>
 											{/* <li><Link to="/productReview"><i className="ti ti-progress-alert fs-16 me-2"></i><span>Products Review</span></Link></li> */}
 											<li><Link to="/comboproducts"><i className="ti ti-trending-up-2 fs-16 me-2"></i><span>Combo Products</span></Link></li>
+											<li><Link to="/stock-dashboard"><i className="ti ti-chart-line fs-16 me-2"></i><span>Stock Dashboard</span></Link></li>
+											<li><Link to="/stock-management"><i className="ti ti-package fs-16 me-2"></i><span>Stock Management</span></Link></li>
 											<li><Link to="/category"><i className="ti ti-list-details fs-16 me-2"></i><span>Category</span></Link></li>
 											<li><Link to="/subcategory"><i className="ti ti-carousel-vertical fs-16 me-2"></i><span>Sub Category</span></Link></li>
 											<li><Link to="/brand"><i className="ti ti-triangles fs-16 me-2"></i><span>Brands</span></Link></li>

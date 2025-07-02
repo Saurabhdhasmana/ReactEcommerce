@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { toast } from 'react-toastify';
+import { API_BASE_URL, IMAGE_BASE_URL } from "../config/api";
 
 const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
   // Product fields
@@ -121,6 +122,8 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
             salePrice: v.salePrice,
             sku: v.sku,
             openingStock: v.openingStock,
+            minimumStock: v.minimumStock !== undefined ? v.minimumStock : 5,
+            reorderLevel: v.reorderLevel !== undefined ? v.reorderLevel : 10,
             status: v.status,
             images: v.images || []
           };
@@ -173,17 +176,22 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
   const handleComboDetailChange = (combo, field, value) => {
     const key = combo.join("|");
     setVariantDetails(prev => {
+      let parsedValue = value;
+      // For stock fields, always store as number or undefined
+      if (["currentStock", "openingStock", "minimumStock", "reorderLevel", "mrp", "salePrice", "price"].includes(field)) {
+        parsedValue = value === '' ? undefined : Number(value);
+      }
       const updated = {
         ...prev,
         [key]: {
           ...prev[key],
-          [field]: value
+          [field]: parsedValue
         }
       };
       // If basePrice is updated, also update price and salePrice
       if (field === "basePrice") {
-        updated[key].price = value;
-        updated[key].salePrice = value;
+        updated[key].price = parsedValue;
+        updated[key].salePrice = parsedValue;
       }
       return updated;
     });
@@ -240,11 +248,13 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
         variantName,
         variantValues: combo,
         images,
-        mrp: details.mrp || "",
-        price: details.price || "",
-        salePrice: details.salePrice || "",
+        mrp: details.mrp,
+        price: details.price,
+        salePrice: details.salePrice,
         sku,
-        openingStock: details.openingStock || "",
+        openingStock: details.openingStock,
+        minimumStock: details.minimumStock,
+        reorderLevel: details.reorderLevel,
         status: details.status !== undefined ? details.status : true
       };
     });
@@ -439,7 +449,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                         <label className="form-label fw-bold">Image</label>
                         {editProduct && editProduct.image && (
                           <img
-                            src={`https://backend-darze-4.onrender.com/images/uploads/${editProduct.image}`}
+                            src={`${IMAGE_BASE_URL}/${editProduct.image}`}
                             alt="Product"
                             className="d-block mb-2 rounded shadow-sm border"
                             style={{ width: 60 }}
@@ -459,7 +469,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                             {editProduct.images.map((img, idx) => (
                               <img
                                 key={idx}
-                                src={`https://backend-darze-4.onrender.com/images/uploads/${img}`}
+                                src={`${IMAGE_BASE_URL}/${img}`}
                                 alt="Product"
                                 className="me-2 mb-1 rounded shadow-sm border"
                                 style={{ width: 40 }}
@@ -589,11 +599,12 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                           <thead className="table-info">
                             <tr>
                               <th>Product Variant Name</th>
-                             
                               <th>MRP Price</th>
                               <th>Sale Price</th>
                               <th>SKU</th>
                               <th>Opening Stock</th>
+                              <th>Min Stock</th>
+                              <th>Reorder Level</th>
                               <th>Status</th>
                             </tr>
                           </thead>
@@ -606,7 +617,6 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                                   <td>
                                     <input className="form-control shadow-sm" value={combo.join(" ")} readOnly />
                                   </td>
-                        
                                   <td>
                                     <input type="number" className="form-control shadow-sm" placeholder="MRP" value={details.mrp || ""} onChange={e => handleComboDetailChange(combo, "mrp", e.target.value)} />
                                   </td>
@@ -618,6 +628,12 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                                   </td>
                                   <td>
                                     <input type="number" className="form-control shadow-sm" placeholder="Opening Stock" value={details.openingStock || ""} onChange={e => handleComboDetailChange(combo, "openingStock", e.target.value)} />
+                                  </td>
+                                  <td>
+                                    <input type="number" className="form-control shadow-sm" placeholder="Min Stock" value={details.minimumStock || ""} onChange={e => handleComboDetailChange(combo, "minimumStock", e.target.value)} />
+                                  </td>
+                                  <td>
+                                    <input type="number" className="form-control shadow-sm" placeholder="Reorder Level" value={details.reorderLevel || ""} onChange={e => handleComboDetailChange(combo, "reorderLevel", e.target.value)} />
                                   </td>
                                   <td>
                                     <div className="form-check form-switch d-flex justify-content-center">
@@ -642,7 +658,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                     {editProduct && editProduct.productBenefits && editProduct.productBenefits[0] && editProduct.productBenefits[0].images && (
                       <div className="mb-2">
                         {editProduct.productBenefits[0].images.map((img, idx) => (
-                          <img key={idx} src={`https://backend-darze-4.onrender.com/images/uploads/${img}`} alt="Benefit" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                          <img key={idx} src={`${IMAGE_BASE_URL}/${img}`} alt="Benefit" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
                         ))}
                       </div>
                     )}
@@ -668,7 +684,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                         <div className="col-md-3">
                           <label className="form-label">Image</label>
                           {feature.image && typeof feature.image === "string" && (
-                            <img src={`https://backend-darze-4.onrender.com/images/uploads/${feature.image}`} alt="Feature" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                            <img src={`${IMAGE_BASE_URL}/${feature.image}`} alt="Feature" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
                           )}
                           <input type="file" className="form-control shadow-sm" onChange={e => handleFeatureImageChange(idx, e)} />
                         </div>

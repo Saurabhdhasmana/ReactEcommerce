@@ -8,7 +8,11 @@ const productVariantSchema = new mongoose.Schema({
   price: Number,
   salePrice: Number,
   sku: String,
-  openingStock: Number,
+  openingStock: { type: Number, default: 0 },
+  // currentStock: { type: Number, default: 0 },
+  minimumStock: { type: Number, default: 5 },
+  maximumStock: { type: Number, default: 1000 },
+  reorderLevel: { type: Number, default: 10 },
   status: { type: Boolean, default: true }
 });
 

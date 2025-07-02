@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import ProductForm from "./Product";
+import { API_BASE_URL, IMAGE_BASE_URL } from "../config/api";
 
 const Allproduct = () => {
   const navigate = useNavigate();
@@ -9,21 +10,14 @@ const Allproduct = () => {
   const [showProductForm, setShowProductForm] = useState(false); // <-- Add this
   const [editProduct, setEditProduct] = useState(null); // <-- Add this
   // Fetch products from backend
-  // Fetch products from backend
   const fetchProducts = () => {
-    fetch("https://backend-darze-4.onrender.com/api/product")
+    fetch(`${API_BASE_URL}/api/product`)
       .then(res => res.json())
       .then(data => setProducts(data.reverse()));
   };
 
   useEffect(() => {
     fetchProducts();
-  }, []);
-
-  useEffect(() => {
-    fetch("https://backend-darze-4.onrender.com/api/product") // Make sure your backend route is /api/product (GET)
-      .then(res => res.json())
-      .then(data => setProducts(data.reverse())); // reverse for latest first
   }, []);
 
   // Edit icon click handler
@@ -44,7 +38,7 @@ const Allproduct = () => {
     });
 
     if (result.isConfirmed) {
-      await fetch(`https://backend-darze-4.onrender.com/api/product/soft-delete/${id}`, {
+      await fetch(`${API_BASE_URL}/api/product/soft-delete/${id}`, {
         method: "PUT"
       });
       setProducts(products => products.filter(p => p._id !== id));
@@ -201,7 +195,7 @@ const Allproduct = () => {
                           <div className="d-flex align-items-center">
                             {product.image && (
                               <img
-                                src={`https://backend-darze-4.onrender.com/images/uploads/${product.image}`}
+                                src={`${IMAGE_BASE_URL}/${product.image}`}
                                 alt={product.name}
                                 style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
                               />

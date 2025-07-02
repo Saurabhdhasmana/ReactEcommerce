@@ -11,6 +11,8 @@ import ProductForm from './components/Product.jsx'
 import Allproduct from './components/Allproduct.jsx'
 import CouponForm from './components/CouponForm.jsx'
 import Comboproduct from './components/Comboproduct.jsx'
+import StockManagement from './components/StockManagement.jsx'
+import StockDashboard from './components/StockDashboard.jsx'
 import { ToastContainer } from 'react-toastify';
 
 import './assets/css/bootstrap.min.css'
@@ -42,8 +44,9 @@ function App() {
              <Route path="/allproducts" element= {<Allproduct />} />
              <Route path="/coupons" element= {<CouponForm/>} />
              <Route path="/comboproducts" element= {<Comboproduct/>} />
+             <Route path="/stock-management" element= {<StockManagement/>} />
+             <Route path="/stock-dashboard" element= {<StockDashboard/>} />
              <Route path="/dashboard" element= {<Dashboard/>} />
-           
           </Routes>
         
         <Footer />

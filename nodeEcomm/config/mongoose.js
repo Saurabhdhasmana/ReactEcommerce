@@ -1,16 +1,13 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const connectToDatabase = async () => {
-    try {
-        // If MONGO_URI is not found in .env, use default URI
-        const uri = process.env.MONGO_URI || "mongodb://localhost:27017/your-database";
-        await mongoose.connect(uri);
-        console.log("Connected to database successfully");
-    } catch(err) {
-        console.log("Database connection error:", err.message);
-        throw err;
-    }
-}
+const ConnectDB = () => {
+  mongoose.connect(process.env.MONGO_URI)
+    .then(() => {
+      console.log("✅ MongoDB connected");
+    })
+    .catch((err) => {
+      console.error("❌ Database connection error:", err);
+    });
+};
 
-module.exports = connectToDatabase;
+module.exports = ConnectDB;
