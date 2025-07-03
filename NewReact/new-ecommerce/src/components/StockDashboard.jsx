@@ -23,11 +23,11 @@ const StockDashboard = () => {
     setLoading(true);
     try {
       // Fetch stock summary
-      const stockResponse = await fetch('http://localhost:3000/api/stock/summary');
+      const stockResponse = await fetch('https://backend-darze-4.onrender.com/api/stock/summary');
       const stockData = await stockResponse.json();
 
       // Fetch paginated stock transactions
-      const transactionsResponse = await fetch(`http://localhost:3000/api/stock/transactions?page=${customPage}&limit=${customRows}`);
+      const transactionsResponse = await fetch(`https://backend-darze-4.onrender.com/api/stock/transactions?page=${customPage}&limit=${customRows}`);
       const transactionsData = await transactionsResponse.json();
 
       // Calculate metrics

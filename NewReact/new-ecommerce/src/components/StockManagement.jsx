@@ -112,7 +112,7 @@ const StockManagement = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/api/stock/update/${selectedItem.productId}/${selectedItem.sku}`,
+        `https://backend-darze-4.onrender.com/api/stock/update/${selectedItem.productId}/${selectedItem.sku}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
