@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import { FaPlus, FaMinus } from "react-icons/fa";
 import { toast } from 'react-toastify';
-import { API_BASE_URL, IMAGE_BASE_URL } from "../config/api";
+// import { API_BASE_URL, IMAGE_BASE_URL } from "../config/api";
 
 const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
   // Product fields

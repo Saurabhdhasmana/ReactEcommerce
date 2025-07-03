@@ -14,6 +14,7 @@ const Allproduct = () => {
     fetch("https://backend-darze-4.onrender.com/api/product")
       .then(res => res.json())
       .then(data => setProducts(data.reverse()));
+ 
   };
 
   useEffect(() => {
@@ -195,7 +196,7 @@ const Allproduct = () => {
                           <div className="d-flex align-items-center">
                             {product.image && (
                               <img
-                                src={`https://backend-darze-4.onrender.com/${product.image}`}
+                                src={`https://backend-darze-4.onrender.com/images/uploads/${product.image}`}
                                 alt={product.name}
                                 style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
                               />
