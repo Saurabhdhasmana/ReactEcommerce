@@ -6,7 +6,7 @@ const API_CONFIG = {
   LOCAL: {
     // BASE_URL: 'http://localhost:3000',
         BASE_URL: 'https://backend-darze-4.onrender.com',
-    IMAGE_URL: 'http://localhost:3000/images/uploads'
+    IMAGE_URL: 'https://backend-darze-4.onrender.com/images/uploads'
   },
   
   // For production
