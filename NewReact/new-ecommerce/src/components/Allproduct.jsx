@@ -195,7 +195,7 @@ const Allproduct = () => {
                           <div className="d-flex align-items-center">
                             {product.image && (
                               <img
-                                src={`${IMAGE_BASE_URL}/${product.image}`}
+                                src={`https://backend-darze-4.onrender.com/${product.image}`}
                                 alt={product.name}
                                 style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
                               />
