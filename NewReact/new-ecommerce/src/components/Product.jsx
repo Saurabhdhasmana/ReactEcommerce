@@ -42,10 +42,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
 
   // Fetch dropdown data
   useEffect(() => {
-    fetch("/api/category").then(res => res.json()).then(data => setCategories(data.category || []));
-    fetch("/api/subcategory").then(res => res.json()).then(data => setSubcategories(data.subcategories || []));
-    fetch("/api/brand").then(res => res.json()).then(data => setBrands(data.brands || []));
-    fetch("/api/variants")
+    fetch("https://backend-darze-4.onrender.com/api/category").then(res => res.json()).then(data => setCategories(data.category || []));
+    fetch("https://backend-darze-4.onrender.com/api/subcategory").then(res => res.json()).then(data => setSubcategories(data.subcategories || []));
+    fetch("https://backend-darze-4.onrender.com/api/brand").then(res => res.json()).then(data => setBrands(data.brands || []));
+    fetch("https://backend-darze-4.onrender.com/api/variants")
       .then(res => res.json())
       .then(data => setVariantOptions(
         data.map(v => ({
