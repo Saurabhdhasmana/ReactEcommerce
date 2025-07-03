@@ -33,7 +33,7 @@ const ComboProduct = () => {
 
   /* ------------ fetch data ------------ */
   useEffect(() => {
-    fetch("http://localhost:3000/api/products")
+    fetch("https://backend-darze-4.onrender.com/api/products")
       .then(res => res.json())
       .then(setProducts)
       .catch(console.error);

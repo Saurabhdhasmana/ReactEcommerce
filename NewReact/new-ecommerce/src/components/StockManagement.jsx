@@ -264,16 +264,9 @@ const StockManagement = () => {
                         <td><code>{item.sku}</code></td>
                         <td>
                           <span className={`fw-bold ${
-                            (
-                              (typeof item.currentStock === 'number' && item.currentStock <= item.minimumStock)
-                              ||
-                              (typeof item.currentStock !== 'number' && typeof item.openingStock === 'number' && item.openingStock <= item.minimumStock)
-                            ) ? 'text-danger' : 'text-success'}`}>
-                            {
-                              (typeof item.currentStock === 'number' && item.currentStock !== 0)
-                                ? item.currentStock
-                                : (typeof item.openingStock === 'number' ? item.openingStock : '')
-                            }
+                            (typeof item.openingStock === 'number' && item.openingStock <= item.minimumStock)
+                              ? 'text-danger' : 'text-success'}`}>
+                            {typeof item.openingStock === 'number' ? item.openingStock : 0}
                           </span>
                         </td>
                         <td>{item.minimumStock}</td>
@@ -317,11 +310,11 @@ const StockManagement = () => {
                 <div className="modal-body">
                   <div className="row">
                     <div className="col-md-6">
-                      <label className="form-label">Current Stock</label>
+                      <label className="form-label">Opening Stock</label>
                       <input 
                         type="text" 
                         className="form-control" 
-                        value={selectedItem?.currentStock || 0} 
+                        value={typeof selectedItem?.openingStock === 'number' ? selectedItem.openingStock : 0} 
                         readOnly 
                       />
                     </div>

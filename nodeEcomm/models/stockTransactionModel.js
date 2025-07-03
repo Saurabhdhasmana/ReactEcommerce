@@ -14,7 +14,7 @@ const stockTransactionSchema = new mongoose.Schema({
   },
   quantity: { type: Number, required: true },
   previousStock: { type: Number, required: true },
-  newStock: { type: Number, required: true },
+  newStock: { type: Number, required: true }, // This is always based on openingStock now
   reason: { type: String, required: true },
   reference: String, // Order ID, Purchase ID, etc.
   notes: String,

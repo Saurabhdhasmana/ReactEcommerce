@@ -602,7 +602,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                               <th>MRP Price</th>
                               <th>Sale Price</th>
                               <th>SKU</th>
-                              <th>Opening Stock</th>
+                              <th>Current Stock</th>
                               <th>Min Stock</th>
                               <th>Reorder Level</th>
                               <th>Status</th>
