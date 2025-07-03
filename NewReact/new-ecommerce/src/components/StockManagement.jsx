@@ -37,7 +37,7 @@ const StockManagement = () => {
   const fetchStockData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/stock/summary');
+      const response = await fetch('https://backend-darze-4.onrender.com/api/stock/summary');
       const data = await response.json();
      console.log(data);
       setStockData(data);
@@ -51,7 +51,7 @@ const StockManagement = () => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/stock/transactions?page=${page}&limit=${limit}`);
+      const response = await fetch(`https://backend-darze-4.onrender.com/api/stock/transactions?page=${page}&limit=${limit}`);
       
       console.log(data);
       setTransactions(data.transactions);
@@ -63,7 +63,7 @@ const StockManagement = () => {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/stock/alerts');
+      const response = await fetch('https://backend-darze-4.onrender.com/api/stock/alerts');
       const data = await response.json();
       setAlerts(data);
     } catch (error) {
