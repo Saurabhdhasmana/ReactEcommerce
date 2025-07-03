@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import ProductForm from "./Product";
-import { API_BASE_URL, IMAGE_BASE_URL } from "../config/api";
+// import { API_BASE_URL, IMAGE_BASE_URL } from "../config/api";
 
 const Allproduct = () => {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ const Allproduct = () => {
   const [editProduct, setEditProduct] = useState(null); // <-- Add this
   // Fetch products from backend
   const fetchProducts = () => {
-    fetch(`${API_BASE_URL}/api/product`)
+    fetch("https://backend-darze-4.onrender.com/api/product")
       .then(res => res.json())
       .then(data => setProducts(data.reverse()));
   };
@@ -38,7 +38,7 @@ const Allproduct = () => {
     });
 
     if (result.isConfirmed) {
-      await fetch(`${API_BASE_URL}/api/product/soft-delete/${id}`, {
+      await fetch(`https://backend-darze-4.onrender.com/api/product/soft-delete/${id}`, {
         method: "PUT"
       });
       setProducts(products => products.filter(p => p._id !== id));
