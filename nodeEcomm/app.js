@@ -216,13 +216,12 @@ app.post('/api/product', cpUpload, async (req, res) => {
     }
     if (data.variants && Array.isArray(data.variants)) {
       data.variants = data.variants.map(variant => {
-        // If currentStock is not set, use openingStock
-        let currentStock = parseStockValue(variant.currentStock, undefined);
-        if (currentStock === undefined) {
-          currentStock = parseStockValue(variant.openingStock, 0);
-        }
+        // Set both openingStock and currentStock
+        const openingStock = parseStockValue(variant.openingStock, 0);
+        const currentStock = parseStockValue(variant.currentStock, openingStock);
         return {
           ...variant,
+          openingStock,
           currentStock,
           minimumStock: parseStockValue(variant.minimumStock, 5),
           reorderLevel: parseStockValue(variant.reorderLevel, 10)
@@ -305,16 +304,13 @@ app.put('/api/product/:id', cpUpload, async (req, res) => {
     if (data.variants && Array.isArray(data.variants)) {
       data.variants = data.variants.map((variant, idx) => {
         let newVariant = { ...variant };
-        // Only update currentStock if it is present in the request, else do not touch it
-        if (variant.currentStock === undefined || variant.currentStock === null || variant.currentStock === "") {
-          // Remove currentStock from update so MongoDB doesn't overwrite it
-          if (Object.prototype.hasOwnProperty.call(newVariant, 'currentStock')) {
-            delete newVariant.currentStock;
-          }
-        } else {
-          newVariant.currentStock = parseStockValue(variant.currentStock, 0);
-        }
-        // Always keep openingStock as original (immutable after creation)
+        // Update both openingStock and currentStock
+        newVariant.openingStock = variant.openingStock !== undefined && variant.openingStock !== null && variant.openingStock !== ''
+          ? parseStockValue(variant.openingStock, 0)
+          : 0;
+        newVariant.currentStock = variant.currentStock !== undefined && variant.currentStock !== null && variant.currentStock !== ''
+          ? parseStockValue(variant.currentStock, newVariant.openingStock)
+          : newVariant.openingStock;
         newVariant.minimumStock = variant.minimumStock !== undefined && variant.minimumStock !== null && variant.minimumStock !== ''
           ? parseStockValue(variant.minimumStock, 5)
           : 5;
@@ -699,10 +695,6 @@ app.post('/api/stock/initialize', async (req, res) => {
       
       if (product.variants && product.variants.length > 0) {
         product.variants.forEach(variant => {
-          if (variant.currentStock === undefined) {
-            variant.currentStock = variant.openingStock || 0;
-            hasChanges = true;
-          }
           if (variant.minimumStock === undefined) {
             variant.minimumStock = 5;
             hasChanges = true;
@@ -742,15 +734,17 @@ app.get('/api/stock/summary', async (req, res) => {
       if (product.variants && product.variants.length > 0) {
         // For variant products
         product.variants.forEach(variant => {
-          const openingStock = variant.openingStock !== undefined ? variant.openingStock : 0;
+          // Use currentStock for calculations if available, otherwise use openingStock
+          const currentStock = variant.currentStock !== undefined ? variant.currentStock : 
+                              (variant.openingStock !== undefined ? variant.openingStock : 0);
           const minimumStock = variant.minimumStock !== undefined ? variant.minimumStock : 5;
           const reorderLevel = variant.reorderLevel !== undefined ? variant.reorderLevel : 10;
           let stockStatus = 'In Stock';
-          if (openingStock === 0) {
+          if (currentStock === 0) {
             stockStatus = 'Out of Stock';
-          } else if (openingStock <= minimumStock) {
+          } else if (currentStock <= minimumStock) {
             stockStatus = 'Low Stock';
-          } else if (openingStock <= reorderLevel) {
+          } else if (currentStock <= reorderLevel) {
             stockStatus = 'Reorder Level';
           }
           stockSummary.push({
@@ -758,7 +752,8 @@ app.get('/api/stock/summary', async (req, res) => {
             productName: product.name,
             variantName: variant.variantName,
             sku: variant.sku,
-            openingStock,
+            openingStock: variant.openingStock !== undefined ? variant.openingStock : 0, // Original opening stock
+            currentStock: currentStock, // Current stock for calculations and updates
             minimumStock,
             reorderLevel,
             stockStatus,
@@ -807,8 +802,9 @@ app.put('/api/stock/update/:productId/:sku', async (req, res) => {
     }
 
 
-    // Use openingStock for all calculations and updates
-    const previousStock = variant.openingStock !== undefined ? variant.openingStock : 0;
+    // Use currentStock for all calculations and updates (preserve original openingStock)
+    const previousStock = variant.currentStock !== undefined ? variant.currentStock : 
+                         (variant.openingStock !== undefined ? variant.openingStock : 0);
     let newStock = previousStock;
 
     // Calculate new stock based on transaction type
@@ -831,8 +827,11 @@ app.put('/api/stock/update/:productId/:sku', async (req, res) => {
       return res.status(400).json({ error: 'Stock cannot be negative' });
     }
 
-    // Update only openingStock (currentStock is ignored everywhere)
-    variant.openingStock = newStock;
+    // Update currentStock (preserve original openingStock)
+    if (!variant.currentStock && variant.currentStock !== 0) {
+      variant.currentStock = variant.openingStock || 0;
+    }
+    variant.currentStock = newStock;
     await product.save();
 
     // Create stock transaction record
@@ -969,8 +968,11 @@ app.put('/api/stock/transactions/:id', async (req, res) => {
       return res.status(400).json({ error: 'Stock cannot be negative' });
     }
 
-    // 5. Update variant stock
-    variant.openingStock = newStock;
+    // 5. Update variant stock (preserve original openingStock, track current stock separately)
+    // Keep the original openingStock unchanged and use currentStock for tracking
+    if (!variant.currentStock && variant.currentStock !== 0) {
+      variant.currentStock = variant.openingStock || 0;
+    }
     variant.currentStock = newStock;
     await product.save();
 
@@ -996,7 +998,8 @@ app.get('/api/stock/alerts', async (req, res) => {
     products.forEach(product => {
       if (product.variants && product.variants.length > 0) {
         product.variants.forEach(variant => {
-          const currentStock = variant.currentStock || 0;
+          const currentStock = variant.currentStock !== undefined ? variant.currentStock : 
+                              (variant.openingStock !== undefined ? variant.openingStock : 0);
           const minimumStock = variant.minimumStock || 5;
           const reorderLevel = variant.reorderLevel || 10;
           
@@ -1057,6 +1060,10 @@ app.post('/api/stock/bulk-update', upload.single('stockFile'), async (req, res) 
         }
         
         if (newStock >= 0) {
+          // Update currentStock (preserve original openingStock)
+          if (!variant.currentStock && variant.currentStock !== 0) {
+            variant.currentStock = variant.openingStock || 0;
+          }
           variant.currentStock = newStock;
           await product.save();
           

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import Select from "react-select";
+import { toast } from 'react-toastify';
 const ComboProduct = () => {
   /* ------------ state ------------ */
   const [products, setProducts] = useState([]);
@@ -33,7 +34,7 @@ const ComboProduct = () => {
 
   /* ------------ fetch data ------------ */
   useEffect(() => {
-    fetch("https://backend-darze-4.onrender.com/api/products")
+    fetch("/api/products")
       .then(res => res.json())
       .then(setProducts)
       .catch(console.error);
@@ -44,7 +45,7 @@ const ComboProduct = () => {
   }, [products]);
 
   const fetchCombos = (pg = page) => {
-    fetch(`https://backend-darze-4.onrender.com/api/combos?page=${pg}&limit=${limit}`)
+    fetch(`/api/combos?page=${pg}&limit=${limit}`)
       .then(res => res.json())
       .then(data => {
         setCombos(data.combos || data);       // backend may send {combos,totalPages}
@@ -84,30 +85,80 @@ const ComboProduct = () => {
   /* ------------ submit ------------ */
   const handleAddSubmit = async (e) => {
     e.preventDefault();
-    await fetch("https://backend-darze-4.onrender.com/api/combos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        status: form.status,
-        comboProducts: form.comboProducts.map(p => p._id)
-      })
-    });
-    setAddModalOpen(false); resetForm(); setPage(1); fetchCombos(1);
+    try {
+      const response = await fetch("/api/combos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          status: form.status,
+          comboProducts: form.comboProducts.map(p => p._id)
+        })
+      });
+      
+      if (response.ok) {
+        setAddModalOpen(false);
+        resetForm();
+        setPage(1);
+        fetchCombos(1);
+        toast.success('Combo product added successfully!', {
+          position: 'top-right',
+          autoClose: 3000,
+          theme: 'colored'
+        });
+      } else {
+        toast.error('Failed to add combo product!', {
+          position: 'top-right',
+          autoClose: 3000,
+          theme: 'colored'
+        });
+      }
+    } catch (error) {
+      console.error('Error adding combo:', error);
+      toast.error('Error adding combo product!', {
+        position: 'top-right',
+        autoClose: 3000,
+        theme: 'colored'
+      });
+    }
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    await fetch(`https://backend-darze-4.onrender.com/api/combos/${editData._id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: editData.name,
-        status: editData.status,
-        comboProducts: editData.comboProducts.map(p => p._id)
-      })
-    });
-    setEditModalOpen(false); fetchCombos(page);
+    try {
+      const response = await fetch(`/api/combos/${editData._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editData.name,
+          status: editData.status,
+          comboProducts: editData.comboProducts.map(p => p._id)
+        })
+      });
+      
+      if (response.ok) {
+        setEditModalOpen(false);
+        fetchCombos(page);
+        toast.success('Combo product updated successfully!', {
+          position: 'top-right',
+          autoClose: 3000,
+          theme: 'colored'
+        });
+      } else {
+        toast.error('Failed to update combo product!', {
+          position: 'top-right',
+          autoClose: 3000,
+          theme: 'colored'
+        });
+      }
+    } catch (error) {
+      console.error('Error updating combo:', error);
+      toast.error('Error updating combo product!', {
+        position: 'top-right',
+        autoClose: 3000,
+        theme: 'colored'
+      });
+    }
   };
 
   const handleDelete = async id => {
@@ -116,9 +167,31 @@ const ComboProduct = () => {
       showCancelButton: true, confirmButtonText: "Yes"
     })).isConfirmed;
     if (!ok) return;
-    await fetch(`https://backend-darze-4.onrender.com/api/combos/${id}`, { method: "DELETE" });
-    fetchCombos(page);
-    Swal.fire("Deleted", "", "success");
+    
+    try {
+      const response = await fetch(`/api/combos/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        fetchCombos(page);
+        toast.success('Combo product deleted successfully!', {
+          position: 'top-right',
+          autoClose: 3000,
+          theme: 'colored'
+        });
+      } else {
+        toast.error('Failed to delete combo product!', {
+          position: 'top-right',
+          autoClose: 3000,
+          theme: 'colored'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting combo:', error);
+      toast.error('Error deleting combo product!', {
+        position: 'top-right',
+        autoClose: 3000,
+        theme: 'colored'
+      });
+    }
   };
 
   /* ------------ render ------------ */

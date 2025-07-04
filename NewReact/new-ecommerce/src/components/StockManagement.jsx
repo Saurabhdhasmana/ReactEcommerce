@@ -28,6 +28,10 @@ const StockManagement = () => {
     notes: ''
   });
   
+  // Auto refresh state
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  
   // Pagination
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -37,22 +41,41 @@ const StockManagement = () => {
   const fetchStockData = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://backend-darze-4.onrender.com/api/stock/summary');
+      const response = await fetch('/api/stock/summary');
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-     console.log(data);
+      console.log('Stock summary response:', data);
       setStockData(data);
       setFilteredData(data);
+      setLastUpdate(new Date());
+      
+      if (data.length > 0) {
+        toast.success(`Loaded ${data.length} products`, { autoClose: 1000 });
+      }
     } catch (error) {
-      toast.error('Failed to fetch stock data');
-      console.error(error);
+      console.error('Fetch stock data error:', error);
+      
+      if (error.message.includes('ECONNRESET') || error.message.includes('fetch')) {
+        toast.error('Backend server is not running. Please start the Node.js server on port 3000.');
+      } else {
+        toast.error('Failed to fetch stock data');
+      }
+      
+      // Set empty data on error
+      setStockData([]);
+      setFilteredData([]);
     }
     setLoading(false);
   };
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`https://backend-darze-4.onrender.com/api/stock/transactions?page=${page}&limit=${limit}`);
-      
+      const response = await fetch(`/api/stock/transactions?page=${page}&limit=${limit}`);
+      const data = await response.json();
       console.log(data);
       setTransactions(data.transactions);
       setTotalPages(data.totalPages);
@@ -63,7 +86,7 @@ const StockManagement = () => {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('https://backend-darze-4.onrender.com/api/stock/alerts');
+      const response = await fetch('/api/stock/alerts');
       const data = await response.json();
       setAlerts(data);
     } catch (error) {
@@ -76,6 +99,20 @@ const StockManagement = () => {
     fetchAlerts();
   }, []);
 
+  // Auto refresh effect
+  useEffect(() => {
+    let interval;
+    if (autoRefresh) {
+      interval = setInterval(() => {
+        console.log('Auto refreshing stock data...');
+        fetchStockData();
+      }, 3000); // Refresh every 3 seconds when enabled
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [autoRefresh]);
+
   /* ------------ Filter Logic ------------ */
   useEffect(() => {
     let filtered = stockData;
@@ -84,7 +121,7 @@ const StockManagement = () => {
     if (filterType === 'low-stock') {
       filtered = filtered.filter(item => item.stockStatus === 'Low Stock');
     } else if (filterType === 'out-of-stock') {
-      filtered = filtered.filter(item => item.currentStock === 0);
+      filtered = filtered.filter(item => (item.currentStock || 0) === 0);
     } else if (filterType === 'reorder') {
       filtered = filtered.filter(item => item.stockStatus === 'Reorder');
     }
@@ -110,31 +147,144 @@ const StockManagement = () => {
       return;
     }
 
-    try {
-      const response = await fetch(
-        `https://backend-darze-4.onrender.com/api/stock/update/${selectedItem.productId}/${selectedItem.sku}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(stockForm)
-        }
-      );
+    // Validate quantity is a positive number
+    const quantity = Number(stockForm.quantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      toast.error('Please enter a valid quantity');
+      return;
+    }
 
-      const result = await response.json();
+    try {
+      console.log('=== STOCK UPDATE DEBUG ===');
+      console.log('Selected Item:', selectedItem);
+      console.log('Product ID:', selectedItem.productId);
+      console.log('SKU:', selectedItem.sku);
+      console.log('Current Stock Before:', selectedItem.currentStock);
+      console.log('Form Data:', stockForm);
+      console.log('Quantity (parsed):', quantity);
       
-      if (response.ok) {
-        toast.success('Stock updated successfully!');
-        setUpdateStockModal(false);
-        setStockForm({ quantity: '', transactionType: 'IN', reason: '', notes: '' });
-        setSelectedItem(null);
-        fetchStockData();
-        fetchAlerts();
-      } else {
-        toast.error(result.error || 'Failed to update stock');
+      // Clean SKU - remove any extra characters
+      const cleanSku = selectedItem.sku ? selectedItem.sku.toString().trim() : '';
+      
+      if (!cleanSku) {
+        toast.error('SKU not found for this product');
+        return;
       }
+      
+      const apiUrl = `/api/stock/update/${selectedItem.productId}/${cleanSku}`;
+      console.log('API URL:', apiUrl);
+      
+      const requestBody = {
+        quantity: quantity,
+        transactionType: stockForm.transactionType,
+        reason: stockForm.reason,
+        notes: stockForm.notes
+      };
+      
+      console.log('Request Body:', requestBody);
+      
+      // Show loading state
+      toast.info('Updating stock...');
+      
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('Response Status:', response.status);
+      console.log('Response Headers:', response.headers);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error Response Text:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log('Success Response:', result);
+      
+      // Calculate expected new stock for verification
+      let expectedStock = selectedItem.currentStock || 0;
+      switch (stockForm.transactionType) {
+        case 'IN':
+          expectedStock += quantity;
+          break;
+        case 'OUT':
+          expectedStock -= quantity;
+          break;
+        case 'ADJUSTMENT':
+          expectedStock = quantity;
+          break;
+      }
+      
+      console.log('Expected New Stock:', expectedStock);
+      console.log('Actual New Stock from API:', result.variant?.newStock);
+      
+      if (result.variant?.newStock !== expectedStock) {
+        console.warn('Stock calculation mismatch!');
+      }
+      
+      // Immediately update the stock in local state for instant feedback
+      const newStockValue = result.variant?.newStock || expectedStock;
+      
+      setStockData(prevData => 
+        prevData.map(item => {
+          if (item.productId === selectedItem.productId && item.sku === selectedItem.sku) {
+            console.log('Updating local stock from', item.currentStock, 'to', newStockValue);
+            return { 
+              ...item, 
+              currentStock: newStockValue,
+              stockStatus: newStockValue === 0 ? 'Out of Stock' : 
+                          newStockValue <= (item.minimumStock || 5) ? 'Low Stock' : 
+                          newStockValue <= (item.reorderLevel || 10) ? 'Reorder Level' : 'In Stock'
+            };
+          }
+          return item;
+        })
+      );
+      
+      setFilteredData(prevData => 
+        prevData.map(item => {
+          if (item.productId === selectedItem.productId && item.sku === selectedItem.sku) {
+            return { 
+              ...item, 
+              currentStock: newStockValue,
+              stockStatus: newStockValue === 0 ? 'Out of Stock' : 
+                          newStockValue <= (item.minimumStock || 5) ? 'Low Stock' : 
+                          newStockValue <= (item.reorderLevel || 10) ? 'Reorder Level' : 'In Stock'
+            };
+          }
+          return item;
+        })
+      );
+      
+      toast.success(`Stock updated! ${selectedItem.productName} stock: ${selectedItem.currentStock || 0} → ${newStockValue}`);
+      setUpdateStockModal(false);
+      setStockForm({ quantity: '', transactionType: 'IN', reason: '', notes: '' });
+      setSelectedItem(null);
+      
+      // Background refresh to sync with backend
+      setTimeout(async () => {
+        console.log('Background refresh after stock update...');
+        await fetchStockData();
+        await fetchAlerts();
+      }, 1000);
+      
     } catch (error) {
-      toast.error('Failed to update stock');
-      console.error(error);
+      console.error('=== STOCK UPDATE ERROR ===');
+      console.error('Error Details:', error);
+      console.error('Error Message:', error.message);
+      
+      if (error.message.includes('fetch')) {
+        toast.error('Backend server is not running! Please start the server first.');
+      } else if (error.message.includes('404')) {
+        toast.error('Product or variant not found in database');
+      } else if (error.message.includes('400')) {
+        toast.error('Invalid request data');
+      } else {
+        toast.error(`Update failed: ${error.message}`);
+      }
     }
   };
 
@@ -145,7 +295,7 @@ const StockManagement = () => {
 
   /* ------------ Render ------------ */
   const getStockStatusBadge = (status, currentStock, minimumStock = 0, reorderLevel = 0) => {
-    // Determine status based on stock levels
+    // Determine status based on current stock levels
     if (currentStock === 0) {
       return <span className="badge bg-danger">Out of Stock</span>;
     } else if (currentStock <= minimumStock) {
@@ -167,6 +317,27 @@ const StockManagement = () => {
             <h6>Manage product stock levels and inventory</h6>
           </div>
           <div className="page-btn">
+            <button className="btn btn-warning me-2" onClick={async () => {
+              try {
+                console.log('Testing backend connection...');
+                const response = await fetch('/api/stock/summary');
+                console.log('Test response status:', response.status);
+                console.log('Test response ok:', response.ok);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  console.log('Test response data:', data);
+                  toast.success(`Backend connected! Found ${data.length} stock items`);
+                } else {
+                  throw new Error(`HTTP ${response.status}`);
+                }
+              } catch (error) {
+                console.error('Connection test failed:', error);
+                toast.error('Backend server not running on port 3000. Please start: node app.js');
+              }
+            }}>
+              <i className="ti ti-wifi me-1"></i>Test Connection
+            </button>
             <button className="btn btn-success me-2" onClick={() => setBulkUpdateModal(true)}>
               <i className="ti ti-upload me-1"></i>Bulk Update
             </button>
@@ -176,6 +347,21 @@ const StockManagement = () => {
           </div>
         </div>
 
+        {/* Connection Error Alert */}
+        {stockData.length === 0 && !loading && (
+          <div className="alert alert-danger" role="alert">
+            <strong>Backend Connection Error!</strong> 
+            <p className="mb-2">The backend server is not running. Please start it by:</p>
+            <ol className="mb-2">
+              <li>Open a new terminal/command prompt</li>
+              <li>Navigate to: <code>c:\Users\ccc\Documents\Github\ReactEcommerce\nodeEcomm</code></li>
+              <li>Run: <code>npm start</code> or <code>node app.js</code></li>
+              <li>Wait for "Server is running on port 3000" message</li>
+              <li>Click "Test Connection" button above</li>
+            </ol>
+          </div>
+        )}
+
         {/* Stock Alerts */}
         {alerts.length > 0 && (
           <div className="alert alert-warning alert-dismissible" role="alert">
@@ -183,7 +369,7 @@ const StockManagement = () => {
             <ul className="mb-0 mt-2">
               {alerts.slice(0, 3).map((alert, index) => (
                 <li key={index}>
-                  {alert.productName} - {alert.variantName}: {alert.currentStock} units ({alert.alertType})
+                  {alert.productName} - {alert.variantName}: {alert.currentStock || 0} units ({alert.alertType})
                 </li>
               ))}
               {alerts.length > 3 && <li>...and {alerts.length - 3} more</li>}
@@ -219,8 +405,16 @@ const StockManagement = () => {
                 />
               </div>
               <div className="col-md-2 d-flex align-items-end">
+                <button 
+                  className={`btn me-2 ${autoRefresh ? 'btn-success' : 'btn-outline-success'}`}
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  title={autoRefresh ? 'Auto refresh ON' : 'Auto refresh OFF'}
+                >
+                  <i className={`ti ${autoRefresh ? 'ti-refresh' : 'ti-refresh-off'} me-1`}></i>
+                  {autoRefresh ? 'Auto ON' : 'Auto OFF'}
+                </button>
                 <button className="btn btn-primary" onClick={fetchStockData}>
-                  <i className="ti ti-refresh me-1"></i>Refresh Data
+                  <i className="ti ti-refresh me-1"></i>Refresh
                 </button>
               </div>
             </div>
@@ -229,6 +423,21 @@ const StockManagement = () => {
 
         {/* Stock Table */}
         <div className="card">
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">Stock Inventory</h5>
+            <div className="d-flex align-items-center">
+              {autoRefresh && (
+                <span className="badge bg-success me-2">
+                  <i className="ti ti-refresh me-1"></i>Auto Refreshing
+                </span>
+              )}
+              {lastUpdate && (
+                <small className="text-muted">
+                  Last updated: {new Date(lastUpdate).toLocaleTimeString()}
+                </small>
+              )}
+            </div>
+          </div>
           <div className="card-body p-0">
             <div className="table-responsive">
               <table className="table table-striped">
@@ -237,6 +446,7 @@ const StockManagement = () => {
                     <th>Product</th>
                     <th>Variant</th>
                     <th>SKU</th>
+                    <th>Opening Stock</th>
                     <th>Current Stock</th>
                     <th>Min Stock</th>
                     <th>Reorder Level</th>
@@ -249,11 +459,11 @@ const StockManagement = () => {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="10" className="text-center">Loading...</td>
+                      <td colSpan="11" className="text-center">Loading...</td>
                     </tr>
                   ) : filteredData.length === 0 ? (
                     <tr>
-                      <td colSpan="10" className="text-center">No stock data found</td>
+                      <td colSpan="11" className="text-center">No stock data found</td>
                     </tr>
                   ) : (
                     filteredData.map((item, index) => (
@@ -263,15 +473,20 @@ const StockManagement = () => {
                         <td>{item.variantName}</td>
                         <td><code>{item.sku}</code></td>
                         <td>
-                          <span className={`fw-bold ${
-                            (typeof item.openingStock === 'number' && item.openingStock <= item.minimumStock)
-                              ? 'text-danger' : 'text-success'}`}>
+                          <span className="fw-bold text-info">
                             {typeof item.openingStock === 'number' ? item.openingStock : 0}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`fw-bold ${
+                            (typeof item.currentStock === 'number' && item.currentStock <= item.minimumStock)
+                              ? 'text-danger' : 'text-success'}`}>
+                            {typeof item.currentStock === 'number' ? item.currentStock : 0}
                           </span>
                         </td>
                         <td>{item.minimumStock}</td>
                         <td>{item.reorderLevel}</td>
-                        <td>{getStockStatusBadge(item.stockStatus, item.openingStock, item.minimumStock, item.reorderLevel)}</td>
+                        <td>{getStockStatusBadge(item.stockStatus, item.currentStock, item.minimumStock, item.reorderLevel)}</td>
                         <td>{item.category}</td>
                         <td>{item.brand}</td>
                         <td>
@@ -308,17 +523,38 @@ const StockManagement = () => {
               </div>
               <form onSubmit={handleStockUpdate}>
                 <div className="modal-body">
+                  {/* Debug Info */}
+                  <div className="alert alert-info mb-3">
+                    <small>
+                      <strong>Debug Info:</strong><br/>
+                      Product ID: {selectedItem?.productId}<br/>
+                      SKU: {selectedItem?.sku}<br/>
+                      Current Stock: {selectedItem?.currentStock}
+                    </small>
+                  </div>
+                  
                   <div className="row">
-                    <div className="col-md-6">
+                    <div className="col-md-4">
                       <label className="form-label">Opening Stock</label>
                       <input 
                         type="text" 
-                        className="form-control" 
+                        className="form-control bg-light" 
                         value={typeof selectedItem?.openingStock === 'number' ? selectedItem.openingStock : 0} 
                         readOnly 
                       />
+                      <small className="text-muted">Original stock (read-only)</small>
                     </div>
-                    <div className="col-md-6">
+                    <div className="col-md-4">
+                      <label className="form-label">Current Stock</label>
+                      <input 
+                        type="text" 
+                        className="form-control bg-warning" 
+                        value={typeof selectedItem?.currentStock === 'number' ? selectedItem.currentStock : 0} 
+                        readOnly 
+                      />
+                      <small className="text-muted">Will be updated after transaction</small>
+                    </div>
+                    <div className="col-md-4">
                       <label className="form-label">Transaction Type*</label>
                       <select 
                         className="form-select" 
@@ -524,7 +760,7 @@ const StockManagement = () => {
                           <td><input type="checkbox" /></td>
                           <td>{item.productName}</td>
                           <td>{item.variantName}</td>
-                          <td>{item.currentStock}</td>
+                          <td>{item.currentStock || 0}</td>
                           <td>{getStockStatusBadge(item.stockStatus, item.currentStock, item.minimumStock, item.reorderLevel)}</td>
                         </tr>
                       ))}

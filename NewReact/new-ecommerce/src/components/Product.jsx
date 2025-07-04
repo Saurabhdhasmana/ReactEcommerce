@@ -42,10 +42,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
 
   // Fetch dropdown data
   useEffect(() => {
-    fetch("https://backend-darze-4.onrender.com/api/category").then(res => res.json()).then(data => setCategories(data.category || []));
-    fetch("https://backend-darze-4.onrender.com/api/subcategory").then(res => res.json()).then(data => setSubcategories(data.subcategories || []));
-    fetch("https://backend-darze-4.onrender.com/api/brand").then(res => res.json()).then(data => setBrands(data.brands || []));
-    fetch("https://backend-darze-4.onrender.com/api/variants")
+    fetch("/api/category").then(res => res.json()).then(data => setCategories(data.category || []));
+    fetch("/api/subcategory").then(res => res.json()).then(data => setSubcategories(data.subcategories || []));
+    fetch("/api/brand").then(res => res.json()).then(data => setBrands(data.brands || []));
+    fetch("/api/variants")
       .then(res => res.json())
       .then(data => setVariantOptions(
         data.map(v => ({
@@ -122,6 +122,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
             salePrice: v.salePrice,
             sku: v.sku,
             openingStock: v.openingStock,
+            currentStock: v.currentStock !== undefined ? v.currentStock : v.openingStock,
             minimumStock: v.minimumStock !== undefined ? v.minimumStock : 5,
             reorderLevel: v.reorderLevel !== undefined ? v.reorderLevel : 10,
             status: v.status,
@@ -178,7 +179,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
     setVariantDetails(prev => {
       let parsedValue = value;
       // For stock fields, always store as number or undefined
-      if (["currentStock", "openingStock", "minimumStock", "reorderLevel", "mrp", "salePrice", "price"].includes(field)) {
+      if (["openingStock", "currentStock", "minimumStock", "reorderLevel", "mrp", "salePrice", "price"].includes(field)) {
         parsedValue = value === '' ? undefined : Number(value);
       }
       const updated = {
@@ -253,6 +254,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
         salePrice: details.salePrice,
         sku,
         openingStock: details.openingStock,
+        currentStock: details.currentStock,
         minimumStock: details.minimumStock,
         reorderLevel: details.reorderLevel,
         status: details.status !== undefined ? details.status : true
@@ -296,10 +298,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
     formData.append('productVideos', JSON.stringify(productVideos));
 
 
-    let url = '/api/product';
+    let url = 'https://backend-darze-4.onrender.com/api/product';
     let method = 'POST';
     if (editProduct && editProduct._id) {
-      url = `/api/product/${editProduct._id}`;
+      url = `https://backend-darze-4.onrender.com/api/product/${editProduct._id}`;
       method = 'PUT';
     }
 
@@ -449,10 +451,14 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                         <label className="form-label fw-bold">Image</label>
                         {editProduct && editProduct.image && (
                           <img
-                            src={`https://backend-darze-4.onrender.com${editProduct.image}`}
+                            src={`http://localhost:3000/images/uploads/${editProduct.image}`}
                             alt="Product"
                             className="d-block mb-2 rounded shadow-sm border"
                             style={{ width: 60 }}
+                            onError={(e) => {
+                              console.log("Edit image failed to load:", e.target.src);
+                              e.target.src = "https://via.placeholder.com/60x60?text=No+Image";
+                            }}
                           />
                         )}
                         <input
@@ -469,10 +475,14 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                             {editProduct.images.map((img, idx) => (
                               <img
                                 key={idx}
-                                src={`https://backend-darze-4.onrender.com/${img}`}
+                                src={`http://localhost:3000/images/uploads/${img}`}
                                 alt="Product"
                                 className="me-2 mb-1 rounded shadow-sm border"
                                 style={{ width: 40 }}
+                                onError={(e) => {
+                                  console.log("Multiple image failed to load:", e.target.src);
+                                  e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                                }}
                               />
                             ))}
                           </div>
@@ -602,6 +612,7 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                               <th>MRP Price</th>
                               <th>Sale Price</th>
                               <th>SKU</th>
+                              <th>Opening Stock</th>
                               <th>Current Stock</th>
                               <th>Min Stock</th>
                               <th>Reorder Level</th>
@@ -628,6 +639,9 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                                   </td>
                                   <td>
                                     <input type="number" className="form-control shadow-sm" placeholder="Opening Stock" value={details.openingStock || ""} onChange={e => handleComboDetailChange(combo, "openingStock", e.target.value)} />
+                                  </td>
+                                  <td>
+                                    <input type="number" className="form-control shadow-sm" placeholder="Current Stock" value={details.currentStock || ""} onChange={e => handleComboDetailChange(combo, "currentStock", e.target.value)} />
                                   </td>
                                   <td>
                                     <input type="number" className="form-control shadow-sm" placeholder="Min Stock" value={details.minimumStock || ""} onChange={e => handleComboDetailChange(combo, "minimumStock", e.target.value)} />
@@ -658,7 +672,17 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                     {editProduct && editProduct.productBenefits && editProduct.productBenefits[0] && editProduct.productBenefits[0].images && (
                       <div className="mb-2">
                         {editProduct.productBenefits[0].images.map((img, idx) => (
-                          <img key={idx} src={`https://backend-darze-4.onrender.com/${img}`} alt="Benefit" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                          <img 
+                            key={idx} 
+                            src={`http://localhost:3000/images/uploads/${img}`} 
+                            alt="Benefit" 
+                            className="me-2 mb-1 rounded shadow-sm border" 
+                            style={{ width: 40 }}
+                            onError={(e) => {
+                              console.log("Benefit image failed to load:", e.target.src);
+                              e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                            }}
+                          />
                         ))}
                       </div>
                     )}
@@ -684,7 +708,16 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                         <div className="col-md-3">
                           <label className="form-label">Image</label>
                           {feature.image && typeof feature.image === "string" && (
-                            <img src={`https://backend-darze-4.onrender.com/${feature.image}`} alt="Feature" className="me-2 mb-1 rounded shadow-sm border" style={{ width: 40 }} />
+                            <img 
+                              src={`http://localhost:3000/images/uploads/${feature.image}`} 
+                              alt="Feature" 
+                              className="me-2 mb-1 rounded shadow-sm border" 
+                              style={{ width: 40 }}
+                              onError={(e) => {
+                                console.log("Feature image failed to load:", e.target.src);
+                                e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                              }}
+                            />
                           )}
                           <input type="file" className="form-control shadow-sm" onChange={e => handleFeatureImageChange(idx, e)} />
                         </div>

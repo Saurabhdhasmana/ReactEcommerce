@@ -35,12 +35,12 @@ const StockDashboard = () => {
       const lowStockItems = stockData.filter(item => 
         item.stockStatus === 'Low Stock' || item.stockStatus === 'Reorder Level'
       ).length;
-      const outOfStockItems = stockData.filter(item => item.currentStock === 0).length;
+      const outOfStockItems = stockData.filter(item => item.openingStock === 0).length;
       const uniqueProducts = [...new Set(stockData.map(item => item.productId))].length;
 
       // Calculate total stock value (if you have price data)
       const totalStockValue = stockData.reduce((sum, item) => {
-        return sum + (item.currentStock * (item.salePrice || 0));
+        return sum + (item.openingStock * (item.salePrice || 0));
       }, 0);
 
       setDashboardData({

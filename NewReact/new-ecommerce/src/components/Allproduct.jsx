@@ -11,10 +11,11 @@ const Allproduct = () => {
   const [editProduct, setEditProduct] = useState(null); // <-- Add this
   // Fetch products from backend
   const fetchProducts = () => {
-    fetch("https://backend-darze-4.onrender.com/api/product")
+    fetch("/api/product")
       .then(res => res.json())
-      .then(data => setProducts(data.reverse()));
- 
+      .then(data => setProducts(data.reverse()))
+      .catch(err => console.error("Error fetching products:", err));
+  console.log(products);
   };
 
   useEffect(() => {
@@ -39,7 +40,7 @@ const Allproduct = () => {
     });
 
     if (result.isConfirmed) {
-      await fetch(`https://backend-darze-4.onrender.com/api/product/soft-delete/${id}`, {
+      await fetch(`/api/product/soft-delete/${id}`, {
         method: "PUT"
       });
       setProducts(products => products.filter(p => p._id !== id));
@@ -194,12 +195,20 @@ const Allproduct = () => {
                         <td>{product.name}</td>
                         <td>
                           <div className="d-flex align-items-center">
-                            {product.image && (
+                            {product.image ? (
                               <img
                                 src={`https://backend-darze-4.onrender.com/images/uploads/${product.image}`}
                                 alt={product.name}
                                 style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
+                                onError={(e) => {
+                                  console.log("Image failed to load:", e.target.src);
+                                  e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                                }}
                               />
+                            ) : (
+                              <div style={{ width: 40, height: 40, backgroundColor: "#f0f0f0", borderRadius: 4, marginRight: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <span style={{ fontSize: "10px", color: "#666" }}>No Image</span>
+                              </div>
                             )}
                           </div>
                         </td>
