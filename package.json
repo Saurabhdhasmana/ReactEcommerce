@@ -1,5 +1,28 @@
 {
   "dependencies": {
+    "concurrently": "^9.2.0",
     "react-router-dom": "^7.6.2"
-  }
+  },
+  "name": "reactecommerce",
+  "version": "1.0.0",
+  "description": "",
+  "main": "test-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "new-ecommerce": "cd NewReact/new-ecommerce && npm start",
+    "nodeEcomm": "cd nodeEcomm && npm start",
+    "start": "concurrently \"npm run new-ecommerce\" \"npm run nodeEcomm\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Saurabhdhasmana/ReactEcommerce.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Saurabhdhasmana/ReactEcommerce/issues"
+  },
+  "homepage": "https://github.com/Saurabhdhasmana/ReactEcommerce#readme"
 }

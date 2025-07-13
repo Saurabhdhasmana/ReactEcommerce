@@ -130,14 +130,14 @@ const Variants = () => {
     const [editVariantId, setEditVariantId] = useState(null);
 
     useEffect(() => {
-        fetch("https://backend-darze-4.onrender.com/api/variants")
+        fetch("/api/variants")
             .then(res => res.json())
             .then(data => setVariants(data));
     }, []);
 
     // Add new variant (backend)
     const handleAddVariant = async (variantObj) => {
-        const res = await fetch("https://backend-darze-4.onrender.com/api/variants", {
+        const res = await fetch("/api/variants", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(variantObj),
@@ -150,7 +150,7 @@ const Variants = () => {
 
     // Edit variant (backend)
     const handleEditVariant = async (variantObj) => {
-        const res = await fetch(`https://backend-darze-4.onrender.com/api/variants/${editVariantId}`, {
+        const res = await fetch(`/api/variants/${editVariantId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(variantObj),
@@ -179,7 +179,7 @@ const Variants = () => {
         });
 
         if (result.isConfirmed) {
-            const res = await fetch(`https://backend-darze-4.onrender.com/api/variants/${id}`, { method: "DELETE" });
+            const res = await fetch(`/api/variants/${id}`, { method: "DELETE" });
             if (res.ok) {
                 setVariants(variants.filter(v => v._id !== id));
                 Swal.fire('Deleted!', 'Variant has been deleted.', 'success');

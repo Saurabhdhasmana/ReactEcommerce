@@ -22,7 +22,7 @@ const CategoryTable = () => {
     const [editModalOpen, setEditModalOpen] = useState(false);
 
     const fetchCategories = (pageNum = 1) => {
-        fetch(`https://backend-darze-4.onrender.com/api/category?page=${pageNum}&limit=${limit}`)
+        fetch(`/api/category?page=${pageNum}&limit=${limit}`)
             .then(res => res.json())
             .then(data => {
                 setCategories(data.category);
@@ -47,7 +47,7 @@ const CategoryTable = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    const res = await fetch(`https://backend-darze-4.onrender.com/api/category/${id}`, {
+                    const res = await fetch(`/api/category/${id}`, {
                         method: 'DELETE',
                     });
                     if (res.ok) {
@@ -97,7 +97,7 @@ const CategoryTable = () => {
             formData.append('image', editImage);
         }
         try {
-            const res = await fetch(`https://backend-darze-4.onrender.com/api/category/${editCategory._id}`, {
+            const res = await fetch(`/api/category/${editCategory._id}`, {
                 method: 'PUT',
                 body: formData,
             });
@@ -121,7 +121,7 @@ const CategoryTable = () => {
         formData.append('status', status);
 
         try {
-            const res = await fetch('https://backend-darze-4.onrender.com/api/category', {
+            const res = await fetch('/api/category', {
                 method: 'POST',
                 body: formData,
             });
@@ -260,7 +260,7 @@ const CategoryTable = () => {
                                                 {/* Show old image */}
                                                 {editCategory && editCategory.image && (
                                                     <img
-                                                        src={`https://backend-darze-4.onrender.com/images/uploads/${editCategory.image}`}
+                                                        src={`http://localhost:3000/images/uploads/${editCategory.image}`}
                                                         alt={editCategory.name}
                                                         width={50}
                                                         height={50}
@@ -330,7 +330,7 @@ const CategoryTable = () => {
                                             </td>
                                             <td><span className="text-gray-9">{cat.name}</span></td>
                                             <td>{cat.image && (
-                                                <img src={`https://backend-darze-4.onrender.com/images/uploads/${cat.image}`} alt={cat.name} width={50} height={50} />
+                                                <img src={`http://localhost:3000/images/uploads/${cat.image}`} alt={cat.name} width={50} height={50} />
                                             )}</td>
                                             <td>
                                                 {cat.createdAt

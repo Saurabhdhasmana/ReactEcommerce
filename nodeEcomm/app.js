@@ -1,4 +1,5 @@
 require("dotenv").config();
+const mongoose = require('mongoose');
 const express = require('express');
 const path = require('path');
 const ConnectDB = require("./config/mongoose");
@@ -13,12 +14,14 @@ const OrderItem = require("./models/OrderItemModel");
 const ComboProduct = require("./models/comboproductModel");
 const Review = require("./models/productreviewModel")
 const adminAuth = require("./middleware/authMiddleware");
-
+const concurrently = require('concurrently');
 //from routes folder..
 const userRoutes = require("./routes/userRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const subcategoryRoutes = require("./routes/subCategoryRoutes");
 const brandRoutes = require("./routes/brandRoutes");
+const blogRoutes = require("./routes/blogRoutes");
+const comboRoutes = require("./routes/combosRoutes");
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -31,7 +34,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from public folder (for /images/uploads/filename access)
 app.use(express.static(path.join(__dirname, 'public')));
+// Explicitly serve /images/uploads for direct access
+app.use('/images/uploads', express.static(path.join(__dirname, 'public/images/uploads')));
 app.use(cors());
 
 ConnectDB();
@@ -44,6 +50,8 @@ app.use("/api", categoryRoutes);
 app.use("/api", userRoutes);
 app.use("/api", subcategoryRoutes);
 app.use("/api", brandRoutes);
+app.use("/api/blog", blogRoutes);
+app.use("/api", comboRoutes);
 
 app.get('/api/variants', async (req, res) => {
   try {
@@ -119,7 +127,7 @@ app.get('/api/product', async (req, res) => {
   }
 });
 // single product 
-const mongoose = require('mongoose');
+
 app.get('/api/product/:id', async (req, res) => {
   // Validate ObjectId
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -229,6 +237,7 @@ app.post('/api/product', cpUpload, async (req, res) => {
       });
     }
     const product = new Product(data);
+    product.markModified('variants');
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -319,6 +328,11 @@ app.put('/api/product/:id', cpUpload, async (req, res) => {
           : 10;
         return newVariant;
       });
+    }
+    // Mark variants as modified if present
+    if (data.variants && Array.isArray(data.variants)) {
+      // This ensures mongoose saves nested changes
+      await Product.updateOne({ _id: req.params.id }, { $set: { variants: data.variants } });
     }
     const updated = await Product.findByIdAndUpdate(req.params.id, data, { new: true });
     res.json(updated);
@@ -543,57 +557,6 @@ app.get("/api/products", async (_req, res) => {
   );
 });
 
-app.get("/api/combos", async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-
-  try {
-    const combos = await ComboProduct.find()
-      .sort({ createdAt: -1 }) // 🆕 Newest first
-      .skip((page - 1) * limit)
-      .limit(limit).lean()
-      .populate("comboProducts", "name image");
-
-    console.log("Combos fetched:", JSON.stringify(combos, null, 2));
-
-    const total = await ComboProduct.countDocuments();
-
-    res.json({
-      combos,
-      totalPages: Math.ceil(total / limit)
-    });
-  } catch (err) {
-    res.status(500).json({ error: "Server error", details: err.message });
-  }
-});
-
-
-app.post("/api/combos", async (req, res) => {
-  try {
-    const { name, comboProducts, status } = req.body;
-    const combo = await ComboProduct.create({ name, comboProducts, status });
-    res.status(201).json(combo);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.put("/api/combos/:id", async (req, res) => {
-  try {
-    const combo = await ComboProduct.findByIdAndUpdate(req.params.id, req.body, {
-      new: true
-    });
-    res.json(combo);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.delete("/api/combos/:id", async (req, res) => {
-  await ComboProduct.findByIdAndDelete(req.params.id);
-  res.json({ message: "Combo deleted" });
-});
-
 // PRODUCT REVIEW ROUTES
 const requireAuth = (req, res, next) => {
   // Dummy auth for now, replace with real auth in production
@@ -722,23 +685,31 @@ app.post('/api/stock/initialize', async (req, res) => {
 });
 
 // Get stock summary for all products
+// Stock summary endpoint: always returns the latest stock from DB (never cached)
 app.get('/api/stock/summary', async (req, res) => {
   try {
     const products = await Product.find({ deletedAt: null })
       .populate('category', 'name')
       .populate('brand', 'name');
-    console.log(products);
+
     const stockSummary = [];
-    
-    products.forEach(product => {
+
+
+    for (const product of products) {
       if (product.variants && product.variants.length > 0) {
-        // For variant products
-        product.variants.forEach(variant => {
-          // Use currentStock for calculations if available, otherwise use openingStock
-          const currentStock = variant.currentStock !== undefined ? variant.currentStock : 
-                              (variant.openingStock !== undefined ? variant.openingStock : 0);
-          const minimumStock = variant.minimumStock !== undefined ? variant.minimumStock : 5;
-          const reorderLevel = variant.reorderLevel !== undefined ? variant.reorderLevel : 10;
+        for (const variant of product.variants) {
+          // Always use currentStock (reflects all updates), fallback to openingStock or 0
+          // --- FIX: Always persist and return the latest currentStock from DB ---
+          let currentStock = (typeof variant.currentStock === 'number')
+            ? variant.currentStock
+            : (typeof variant.openingStock === 'number' ? variant.openingStock : 0);
+          // If currentStock is undefined, update it in DB to openingStock or 0
+          if (variant.currentStock === undefined) {
+            variant.currentStock = currentStock;
+            await product.save();
+          }
+          const minimumStock = (typeof variant.minimumStock === 'number') ? variant.minimumStock : 5;
+          const reorderLevel = (typeof variant.reorderLevel === 'number') ? variant.reorderLevel : 10;
           let stockStatus = 'In Stock';
           if (currentStock === 0) {
             stockStatus = 'Out of Stock';
@@ -752,15 +723,15 @@ app.get('/api/stock/summary', async (req, res) => {
             productName: product.name,
             variantName: variant.variantName,
             sku: variant.sku,
-            openingStock: variant.openingStock !== undefined ? variant.openingStock : 0, // Original opening stock
-            currentStock: currentStock, // Current stock for calculations and updates
+            openingStock: typeof variant.openingStock === 'number' ? variant.openingStock : 0,
+            currentStock,
             minimumStock,
             reorderLevel,
             stockStatus,
             category: product.category?.name || 'N/A',
             brand: product.brand?.name || 'N/A'
           });
-        });
+        }
       } else {
         // For simple products without variants
         stockSummary.push({
@@ -768,7 +739,8 @@ app.get('/api/stock/summary', async (req, res) => {
           productName: product.name,
           variantName: 'Default',
           sku: product.sku,
-          openingStock: 0, // You can add a main stock field if needed
+          openingStock: 0,
+          currentStock: 0,
           minimumStock: 5,
           reorderLevel: 10,
           stockStatus: 'No Stock Tracking',
@@ -776,8 +748,8 @@ app.get('/api/stock/summary', async (req, res) => {
           brand: product.brand?.name || 'N/A'
         });
       }
-    });
-    
+    }
+
     res.json(stockSummary);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -832,6 +804,7 @@ app.put('/api/stock/update/:productId/:sku', async (req, res) => {
       variant.currentStock = variant.openingStock || 0;
     }
     variant.currentStock = newStock;
+   product.markModified('variants');
     await product.save();
 
     // Create stock transaction record
@@ -852,16 +825,23 @@ app.put('/api/stock/update/:productId/:sku', async (req, res) => {
 
     await stockTransaction.save();
 
+    // --- Always return the latest product from DB to frontend ---
+    const updatedProduct = await Product.findById(productId);
+    const updatedVariant = updatedProduct.variants.find(v => v.sku === sku);
+
+    // Ensure newStock is always a number and never undefined
+    const safeNewStock = typeof updatedVariant.currentStock === 'number' ? updatedVariant.currentStock : 0;
     res.json({
       message: 'Stock updated successfully',
       variant: {
-        variantName: variant.variantName,
-        previousStock,
-        newStock,
-        stockStatus: (newStock === 0) ? 'Out of Stock' :
-                    (newStock <= (variant.minimumStock || 5)) ? 'Low Stock' :
-                    (newStock <= (variant.reorderLevel || 10)) ? 'Reorder Level' : 'In Stock'
-      }
+        variantName: updatedVariant.variantName,
+        previousStock: typeof previousStock === 'number' ? previousStock : 0,
+        newStock: safeNewStock,
+        stockStatus: (safeNewStock === 0) ? 'Out of Stock' :
+                    (safeNewStock <= (updatedVariant.minimumStock || 5)) ? 'Low Stock' :
+                    (safeNewStock <= (updatedVariant.reorderLevel || 10)) ? 'Reorder Level' : 'In Stock'
+      },
+      product: updatedProduct
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -919,47 +899,52 @@ app.put('/api/stock/transactions/:id', async (req, res) => {
 
     // 3. Reverse the effect of the original transaction
     let stock = variant.openingStock !== undefined ? variant.openingStock : 0;
-    // Undo original transaction
-    switch (originalTx.transactionType) {
-      case 'IN':
-        stock -= originalTx.quantity;
-        break;
-      case 'OUT':
-        stock += originalTx.quantity;
-        break;
-      case 'ADJUSTMENT':
-        // For adjustment, revert to previousStock
-        stock = originalTx.previousStock;
-        break;
-      case 'RETURN':
-        stock -= originalTx.quantity;
-        break;
-      case 'DAMAGED':
-        stock += originalTx.quantity;
-        break;
-      default:
-        break;
+    // Undo all previous transactions for this variant, then reapply all except the edited one
+    // This ensures that if there are multiple edits, the stock is always correct
+    // 1. Get all transactions for this product/variant, sorted by creation date
+    const allTx = await StockTransaction.find({
+      product: product._id,
+      'variant.sku': variant.sku
+    }).sort({ createdAt: 1 });
+
+    // 2. Remove the original transaction from the list (it will be replaced)
+    const filteredTx = allTx.filter(tx => String(tx._id) !== String(id));
+
+    // 3. Start from openingStock and apply all transactions except the one being edited
+    let runningStock = variant.openingStock !== undefined ? variant.openingStock : 0;
+    for (const tx of filteredTx) {
+      switch (tx.transactionType) {
+        case 'IN':
+        case 'RETURN':
+          runningStock += tx.quantity;
+          break;
+        case 'OUT':
+        case 'DAMAGED':
+          runningStock -= tx.quantity;
+          break;
+        case 'ADJUSTMENT':
+          runningStock = tx.quantity;
+          break;
+        default:
+          break;
+      }
     }
 
-    // 4. Apply the new transaction
-    let newStock = stock;
+    // 4. Now apply the new/edited transaction
     const newType = updateData.transactionType || originalTx.transactionType;
     const newQty = updateData.quantity !== undefined ? parseInt(updateData.quantity) : originalTx.quantity;
+    let newStock = runningStock;
     switch (newType) {
       case 'IN':
-        newStock = stock + newQty;
+      case 'RETURN':
+        newStock = runningStock + newQty;
         break;
       case 'OUT':
-        newStock = stock - newQty;
+      case 'DAMAGED':
+        newStock = runningStock - newQty;
         break;
       case 'ADJUSTMENT':
         newStock = newQty;
-        break;
-      case 'RETURN':
-        newStock = stock + newQty;
-        break;
-      case 'DAMAGED':
-        newStock = stock - newQty;
         break;
       default:
         return res.status(400).json({ error: 'Invalid transaction type' });
@@ -969,15 +954,15 @@ app.put('/api/stock/transactions/:id', async (req, res) => {
     }
 
     // 5. Update variant stock (preserve original openingStock, track current stock separately)
-    // Keep the original openingStock unchanged and use currentStock for tracking
     if (!variant.currentStock && variant.currentStock !== 0) {
       variant.currentStock = variant.openingStock || 0;
     }
     variant.currentStock = newStock;
+    product.markModified('variants');
     await product.save();
 
     // 6. Update the transaction record (also update previousStock/newStock fields)
-    updateData.previousStock = stock;
+    updateData.previousStock = runningStock;
     updateData.newStock = newStock;
     const updated = await StockTransaction.findByIdAndUpdate(id, updateData, { new: true });
     res.json({ message: 'Transaction and stock updated', transaction: updated });
@@ -1065,6 +1050,7 @@ app.post('/api/stock/bulk-update', upload.single('stockFile'), async (req, res) 
             variant.currentStock = variant.openingStock || 0;
           }
           variant.currentStock = newStock;
+           product.markModified('variants');
           await product.save();
           
           // Create transaction record
@@ -1111,6 +1097,10 @@ app.post('/api/stock/bulk-update', upload.single('stockFile'), async (req, res) 
     res.status(500).json({ error: err.message });
   }
 });
+
+//blog api
+
+app.use("/api",blogRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);

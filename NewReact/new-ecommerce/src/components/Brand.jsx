@@ -24,7 +24,7 @@ const Brand = () => {
   const fetchBrands = async (pg = page, lim = limit) => {
     setLoading(true);
     try {
-      const res = await fetch(`https://backend-darze-4.onrender.com/api/brand?page=${pg}&limit=${lim}`);
+      const res = await fetch(`/api/brand?page=${pg}&limit=${lim}`);
       const data = await res.json();
       setBrands(data.brands || []);
       setTotal(data.total || 0);
@@ -63,7 +63,7 @@ const Brand = () => {
     if (form.image) formData.append("image", form.image);
 
     try {
-      const res = await fetch("https://backend-darze-4.onrender.com/api/brand", {
+      const res = await fetch("http://localhost:3000/api/brand", {
         method: "POST",
         body: formData,
       });
@@ -99,7 +99,7 @@ const Brand = () => {
     if (form.image) formData.append("image", form.image);
 
     try {
-      const res = await fetch(`https://backend-darze-4.onrender.com/api/brand/${editId}`, {
+      const res = await fetch(`http://localhost:3000/api/brand/${editId}`, {
         method: "PUT",
         body: formData,
       });
@@ -129,7 +129,7 @@ const Brand = () => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await fetch(`https://backend-darze-4.onrender.com/api/brand/${id}`, {
+          await fetch(`http://localhost:3000/api/brand/${id}`, {
             method: "DELETE",
           });
           Swal.fire('Deleted!', 'Brand has been deleted.', 'success');
@@ -156,7 +156,7 @@ const Brand = () => {
     if (brand && brand.image) {
       return brand.image.startsWith("http")
         ? brand.image
-        : `https://backend-darze-4.onrender.com/images/uploads/${brand.image}`;
+        : `http://localhost:3000/images/uploads/${brand.image}`;
     }
     return "assets/img/brand/lenova.png";
   };
@@ -326,7 +326,7 @@ const Brand = () => {
                                     className="object-fit-contain"
                                     src={
                                       item.image
-                                        ? (item.image.startsWith("http") ? item.image : `https://backend-darze-4.onrender.com/images/uploads/${item.image}`)
+                                        ? (item.image.startsWith("http") ? item.image : `http://localhost:3000/images/uploads/${item.image}`)
                                         : "assets/img/brand/lenova.png"
                                     }
                                     alt="img"

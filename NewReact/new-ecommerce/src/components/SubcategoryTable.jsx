@@ -33,7 +33,7 @@ const SubcategoryTable = () => {
 
   // Fetch categories (no pagination)
   useEffect(() => {
-    fetch('https://backend-darze-4.onrender.com/api/category')
+    fetch('/api/category')
       .then(res => res.json())
       .then(data => setCategories(data.category || []))
       .catch(err => console.error(err));
@@ -41,7 +41,7 @@ const SubcategoryTable = () => {
 
   // Fetch subcategories with pagination
   const fetchSubcategories = (pg = page) => {
-    fetch(`https://backend-darze-4.onrender.com/api/subcategory?page=${pg}&limit=${limit}`)
+    fetch(`/api/subcategory?page=${pg}&limit=${limit}`)
       .then(res => res.json())
       .then(data => {
         setSubcategories(data.subcategories || []);
@@ -86,7 +86,7 @@ const SubcategoryTable = () => {
     formData.append("status", form.status);
     if (form.image) formData.append("image", form.image);
 
-    const res = await fetch("https://backend-darze-4.onrender.com/api/subcategory", {
+    const res = await fetch("/api/subcategory", {
       method: "POST",
       body: formData
     });
@@ -131,7 +131,7 @@ const SubcategoryTable = () => {
     formData.append("status", editData.status);
     if (editData.image) formData.append("image", editData.image);
 
-    const res = await fetch(`https://backend-darze-4.onrender.com/api/subcategory/${editData._id}`, {
+    const res = await fetch(`/api/subcategory/${editData._id}`, {
       method: "PUT",
       body: formData
     });
@@ -157,7 +157,7 @@ const SubcategoryTable = () => {
     });
 
     if (result.isConfirmed) {
-      const res = await fetch(`https://backend-darze-4.onrender.com/api/subcategory/${id}`, {
+      const res = await fetch(`/api/subcategory/${id}`, {
         method: "DELETE"
       });
       if (res.ok) {
@@ -244,7 +244,7 @@ const SubcategoryTable = () => {
                           <td>
                             <span className="avatar avatar-md me-2">
                               <img
-                                src={item.image ? `https://backend-darze-4.onrender.com/images/uploads/${item.image}` : "/assets/img/products/stock-img-01.png"}
+                                src={item.image ? `http://localhost:3000/images/uploads/${item.image}` : "/assets/img/products/stock-img-01.png"}
                                 alt={item.name}
                                 width={40}
                                 height={40}
@@ -490,7 +490,7 @@ const SubcategoryTable = () => {
                             src={
                               editData.image
                                 ? URL.createObjectURL(editData.image)
-                                : `https://backend-darze-4.onrender.com/images/uploads/${subcategories.find(sc => sc._id === editData._id)?.image}`
+                                : `http://localhost:3000/images/uploads/${subcategories.find(sc => sc._id === editData._id)?.image}`
                             }
                             alt={editData.name}
                             style={{

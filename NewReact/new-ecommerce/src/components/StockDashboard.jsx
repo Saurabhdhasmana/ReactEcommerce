@@ -23,24 +23,25 @@ const StockDashboard = () => {
     setLoading(true);
     try {
       // Fetch stock summary
-      const stockResponse = await fetch('https://backend-darze-4.onrender.com/api/stock/summary');
+      const stockResponse = await fetch('/api/stock/summary');
       const stockData = await stockResponse.json();
 
       // Fetch paginated stock transactions
-      const transactionsResponse = await fetch(`https://backend-darze-4.onrender.com/api/stock/transactions?page=${customPage}&limit=${customRows}`);
+      const transactionsResponse = await fetch(`/api/stock/transactions?page=${customPage}&limit=${customRows}`);
       const transactionsData = await transactionsResponse.json();
 
-      // Calculate metrics
+      // Calculate metrics based on current stock
       const totalVariants = stockData.length;
       const lowStockItems = stockData.filter(item => 
         item.stockStatus === 'Low Stock' || item.stockStatus === 'Reorder Level'
       ).length;
-      const outOfStockItems = stockData.filter(item => item.openingStock === 0).length;
+      const outOfStockItems = stockData.filter(item => (item.currentStock || 0) === 0).length;
       const uniqueProducts = [...new Set(stockData.map(item => item.productId))].length;
 
-      // Calculate total stock value (if you have price data)
+      // Calculate total stock value based on current stock
       const totalStockValue = stockData.reduce((sum, item) => {
-        return sum + (item.openingStock * (item.salePrice || 0));
+        const currentStock = item.currentStock !== undefined ? item.currentStock : item.openingStock || 0;
+        return sum + (currentStock * (item.salePrice || 0));
       }, 0);
 
       setDashboardData({
@@ -351,21 +352,35 @@ const StockDashboard = () => {
               <form onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const res = await fetch(`http://localhost:3000/api/stock/transactions/${editTransaction._id}`, {
+                  const res = await fetch(`/api/stock/transactions/${editTransaction._id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(editForm)
                   });
                   const data = await res.json();
                   if (res.ok) {
-                    toast.success('Transaction updated!');
+                    toast.success('Transaction updated! Stock values will be recalculated.');
                     setEditTransaction(null);
-                    fetchDashboardData();
+                    
+                    // Refresh dashboard data
+                    await fetchDashboardData();
+                    
+                    // Also trigger stock management refresh if it's open in another tab/component
+                    // Broadcast event for other components to refresh
+                    window.dispatchEvent(new CustomEvent('stockUpdated', { 
+                      detail: { 
+                        productId: editTransaction.product._id || editTransaction.product,
+                        transactionId: editTransaction._id,
+                        type: 'transaction-updated'
+                      }
+                    }));
+                    
                   } else {
                     toast.error(data.error || 'Failed to update');
                   }
                 } catch (err) {
-                  toast.error('Failed to update');
+                  console.error('Transaction update error:', err);
+                  toast.error('Failed to update transaction');
                 }
               }}>
                 <div className="modal-body">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import ProductForm from "./Product";
@@ -9,13 +9,18 @@ const Allproduct = () => {
   const [products, setProducts] = useState([]);
   const [showProductForm, setShowProductForm] = useState(false); // <-- Add this
   const [editProduct, setEditProduct] = useState(null); // <-- Add this
+
+  // Placeholder image as data URI (40x40, gray bg, 'No Image' text)
+  const placeholderImage =
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='100%' height='100%' fill='%23f0f0f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' fill='%23666'>No Image</text></svg>";
+
   // Fetch products from backend
   const fetchProducts = () => {
     fetch("/api/product")
       .then(res => res.json())
       .then(data => setProducts(data.reverse()))
       .catch(err => console.error("Error fetching products:", err));
-  console.log(products);
+    // console.log(products);
   };
 
   useEffect(() => {
@@ -195,20 +200,23 @@ const Allproduct = () => {
                         <td>{product.name}</td>
                         <td>
                           <div className="d-flex align-items-center">
-                            {product.image ? (
+                            {product.image && product.image !== "" && product.image !== null ? (
                               <img
-                                src={`https://backend-darze-4.onrender.com/images/uploads/${product.image}`}
-                                alt={product.name}
+                                src={`http://localhost:3000/images/uploads/${product.image}`}
+                                alt={product.name || "Product Image"}
                                 style={{ width: 40, height: 40, objectFit: "cover", marginRight: 8, borderRadius: 4 }}
-                                onError={(e) => {
-                                  console.log("Image failed to load:", e.target.src);
-                                  e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                                onError={e => {
+                                  e.target.onerror = null;
+                                  // If image fails, show fallback text
+                                  e.target.style.display = 'none';
+                                  const fallback = document.createElement('span');
+                                  fallback.innerText = 'No Image';
+                                  fallback.style.cssText = 'font-size:10px;color:#666;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:4px;margin-right:8px;position:absolute;';
+                                  e.target.parentNode.appendChild(fallback);
                                 }}
                               />
                             ) : (
-                              <div style={{ width: 40, height: 40, backgroundColor: "#f0f0f0", borderRadius: 4, marginRight: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <span style={{ fontSize: "10px", color: "#666" }}>No Image</span>
-                              </div>
+                              <span style={{ fontSize: '10px', color: '#666', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: 4, marginRight: 8 }}>No Image</span>
                             )}
                           </div>
                         </td>

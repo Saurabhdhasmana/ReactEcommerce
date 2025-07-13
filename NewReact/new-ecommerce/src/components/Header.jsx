@@ -6,13 +6,13 @@ import React from 'react'
 			<div className="main-header">
 				<div className="header-left active">
 					<a href="index.html" className="logo logo-normal">
-						<img src="/src//assets/img/logo.svg" alt="Img" />
+						<img src="/src/assets/img/logo.svg" alt="Img" />
 					</a>
 					<a href="index.html" className="logo logo-white">
-						<img src="/src//assets/img/logo-white.svg" alt="Img" />
+						<img src="/src/assets/img/logo-white.svg" alt="Img" />
 					</a>
 					<a href="index.html" className="logo-small">
-						<img src="/src//assets/img/logo-small.png" alt="Img" />
+						<img src="/src/assets/img/logo-small.png" alt="Img" />
 					</a>
 				</div>
 				<a id="mobile_btn" className="mobile_btn" href="#sidebar">

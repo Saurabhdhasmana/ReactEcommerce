@@ -285,7 +285,7 @@ const ComboProduct = () => {
                     onClick={() => setPage(p => p + 1)}>&raquo;</button></li>
               </ul>
             </div>
-          </div>
+          </div>  
         </div>
       </div>
 

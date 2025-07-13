@@ -41,7 +41,7 @@ const CouponForm = () => {
 
 	const fetchCoupons = async () => {
 		try {
-			const res = await axios.get("https://backend-darze-4.onrender.com/api/coupon");
+			const res = await axios.get("/api/coupon");
 			setCoupons(res.data);
 		} catch (err) {
 			setCoupons([]);
@@ -107,7 +107,7 @@ const CouponForm = () => {
 		}).then(async (result) => {
 			if (result.isConfirmed) {
 				try {
-					await axios.delete(`https://backend-darze-4.onrender.com/api/coupon/${id}`);
+					await axios.delete(`/api/coupon/${id}`);
 					fetchCoupons();
 					Swal.fire('Deleted!', 'Coupon has been deleted.', 'success');
 				} catch (err) {
@@ -123,7 +123,7 @@ const CouponForm = () => {
 	const handleSubmit = async e => {
 		e.preventDefault();
 		try {
-			await axios.post("https://backend-darze-4.onrender.com/api/coupon", form);
+			await axios.post("/api/coupon", form);
 			setShowModal(false);
 			setForm({
 				name: "",

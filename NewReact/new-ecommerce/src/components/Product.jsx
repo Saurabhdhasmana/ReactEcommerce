@@ -298,10 +298,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
     formData.append('productVideos', JSON.stringify(productVideos));
 
 
-    let url = 'https://backend-darze-4.onrender.com/api/product';
+    let url = '/api/product';
     let method = 'POST';
     if (editProduct && editProduct._id) {
-      url = `https://backend-darze-4.onrender.com/api/product/${editProduct._id}`;
+      url = `/api/product/${editProduct._id}`;
       method = 'PUT';
     }
 
@@ -456,8 +456,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                             className="d-block mb-2 rounded shadow-sm border"
                             style={{ width: 60 }}
                             onError={(e) => {
-                              console.log("Edit image failed to load:", e.target.src);
-                              e.target.src = "https://via.placeholder.com/60x60?text=No+Image";
+                              // Remove console.log and use inline SVG placeholder
+                              const svg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='100%' height='100%' fill='%23f0f0f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='12' fill='%23666'>No Image</text></svg>";
+                              e.target.onerror = null;
+                              e.target.src = svg;
                             }}
                           />
                         )}
@@ -480,8 +482,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                                 className="me-2 mb-1 rounded shadow-sm border"
                                 style={{ width: 40 }}
                                 onError={(e) => {
-                                  console.log("Multiple image failed to load:", e.target.src);
-                                  e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                                  // Remove console.log and use inline SVG placeholder
+                                  const svg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='100%' height='100%' fill='%23f0f0f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' fill='%23666'>No Image</text></svg>";
+                                  e.target.onerror = null;
+                                  e.target.src = svg;
                                 }}
                               />
                             ))}
@@ -679,8 +683,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                             className="me-2 mb-1 rounded shadow-sm border" 
                             style={{ width: 40 }}
                             onError={(e) => {
-                              console.log("Benefit image failed to load:", e.target.src);
-                              e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                              // Remove console.log and use inline SVG placeholder
+                              const svg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='100%' height='100%' fill='%23f0f0f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' fill='%23666'>No Image</text></svg>";
+                              e.target.onerror = null;
+                              e.target.src = svg;
                             }}
                           />
                         ))}
@@ -714,8 +720,10 @@ const ProductForm = ({ editProduct, onProductUpdated, onClose }) => {
                               className="me-2 mb-1 rounded shadow-sm border" 
                               style={{ width: 40 }}
                               onError={(e) => {
-                                console.log("Feature image failed to load:", e.target.src);
-                                e.target.src = "https://via.placeholder.com/40x40?text=No+Image";
+                                // Remove console.log and use inline SVG placeholder
+                                const svg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><rect width='100%' height='100%' fill='%23f0f0f0'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' fill='%23666'>No Image</text></svg>";
+                                e.target.onerror = null;
+                                e.target.src = svg;
                               }}
                             />
                           )}

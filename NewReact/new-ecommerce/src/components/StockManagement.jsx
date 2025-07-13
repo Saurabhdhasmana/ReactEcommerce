@@ -31,6 +31,7 @@ const StockManagement = () => {
   // Auto refresh state
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [recentlyUpdatedItems, setRecentlyUpdatedItems] = useState(new Set());
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -49,13 +50,19 @@ const StockManagement = () => {
       
       const data = await response.json();
       console.log('Stock summary response:', data);
+      
+      // Always use backend data after fetch (no local override)
       setStockData(data);
       setFilteredData(data);
       setLastUpdate(new Date());
-      
       if (data.length > 0) {
         toast.success(`Loaded ${data.length} products`, { autoClose: 1000 });
       }
+      // Optionally clear recently updated items (for row highlight only)
+      setTimeout(() => {
+        setRecentlyUpdatedItems(new Set());
+        console.log('Cleared recently updated items cache');
+      }, 30000);
     } catch (error) {
       console.error('Fetch stock data error:', error);
       
@@ -74,7 +81,7 @@ const StockManagement = () => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await fetch(`/api/stock/transactions?page=${page}&limit=${limit}`);
+      const response = await fetch(`https://backend-darze-4.onrender.com/api/stock/transactions?page=${page}&limit=${limit}`);
       const data = await response.json();
       console.log(data);
       setTransactions(data.transactions);
@@ -86,7 +93,7 @@ const StockManagement = () => {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('/api/stock/alerts');
+      const response = await fetch('https://backend-darze-4.onrender.com/api/stock/alerts');
       const data = await response.json();
       setAlerts(data);
     } catch (error) {
@@ -97,6 +104,21 @@ const StockManagement = () => {
   useEffect(() => {
     fetchStockData();
     fetchAlerts();
+    
+    // Listen for stock updates from other components (like StockDashboard)
+    const handleStockUpdate = (event) => {
+      console.log('Received stock update event:', event.detail);
+      toast.info('Stock data updated from another component. Refreshing...', { autoClose: 2000 });
+      setTimeout(() => {
+        fetchStockData(); // Manual refresh to get latest data
+      }, 1000);
+    };
+    
+    window.addEventListener('stockUpdated', handleStockUpdate);
+    
+    return () => {
+      window.removeEventListener('stockUpdated', handleStockUpdate);
+    };
   }, []);
 
   // Auto refresh effect
@@ -171,6 +193,7 @@ const StockManagement = () => {
         return;
       }
       
+      // Use local backend for stock update
       const apiUrl = `/api/stock/update/${selectedItem.productId}/${cleanSku}`;
       console.log('API URL:', apiUrl);
       
@@ -225,52 +248,12 @@ const StockManagement = () => {
         console.warn('Stock calculation mismatch!');
       }
       
-      // Immediately update the stock in local state for instant feedback
-      const newStockValue = result.variant?.newStock || expectedStock;
-      
-      setStockData(prevData => 
-        prevData.map(item => {
-          if (item.productId === selectedItem.productId && item.sku === selectedItem.sku) {
-            console.log('Updating local stock from', item.currentStock, 'to', newStockValue);
-            return { 
-              ...item, 
-              currentStock: newStockValue,
-              stockStatus: newStockValue === 0 ? 'Out of Stock' : 
-                          newStockValue <= (item.minimumStock || 5) ? 'Low Stock' : 
-                          newStockValue <= (item.reorderLevel || 10) ? 'Reorder Level' : 'In Stock'
-            };
-          }
-          return item;
-        })
-      );
-      
-      setFilteredData(prevData => 
-        prevData.map(item => {
-          if (item.productId === selectedItem.productId && item.sku === selectedItem.sku) {
-            return { 
-              ...item, 
-              currentStock: newStockValue,
-              stockStatus: newStockValue === 0 ? 'Out of Stock' : 
-                          newStockValue <= (item.minimumStock || 5) ? 'Low Stock' : 
-                          newStockValue <= (item.reorderLevel || 10) ? 'Reorder Level' : 'In Stock'
-            };
-          }
-          return item;
-        })
-      );
-      
-      toast.success(`Stock updated! ${selectedItem.productName} stock: ${selectedItem.currentStock || 0} → ${newStockValue}`);
+      // After update, fetch latest stock from backend to ensure UI is always correct
+      await fetchStockData();
+      toast.success(`Stock updated!`);
       setUpdateStockModal(false);
       setStockForm({ quantity: '', transactionType: 'IN', reason: '', notes: '' });
       setSelectedItem(null);
-      
-      // Background refresh to sync with backend
-      setTimeout(async () => {
-        console.log('Background refresh after stock update...');
-        await fetchStockData();
-        await fetchAlerts();
-      }, 1000);
-      
     } catch (error) {
       console.error('=== STOCK UPDATE ERROR ===');
       console.error('Error Details:', error);
@@ -466,39 +449,53 @@ const StockManagement = () => {
                       <td colSpan="11" className="text-center">No stock data found</td>
                     </tr>
                   ) : (
-                    filteredData.map((item, index) => (
-                     
-                      <tr key={`${item.productId}-${index}`}>
-                        <td>{item.productName}</td>
-                        <td>{item.variantName}</td>
-                        <td><code>{item.sku}</code></td>
-                        <td>
-                          <span className="fw-bold text-info">
-                            {typeof item.openingStock === 'number' ? item.openingStock : 0}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`fw-bold ${
-                            (typeof item.currentStock === 'number' && item.currentStock <= item.minimumStock)
-                              ? 'text-danger' : 'text-success'}`}>
-                            {typeof item.currentStock === 'number' ? item.currentStock : 0}
-                          </span>
-                        </td>
-                        <td>{item.minimumStock}</td>
-                        <td>{item.reorderLevel}</td>
-                        <td>{getStockStatusBadge(item.stockStatus, item.currentStock, item.minimumStock, item.reorderLevel)}</td>
-                        <td>{item.category}</td>
-                        <td>{item.brand}</td>
-                        <td>
-                          <button 
-                            className="btn btn-sm btn-primary"
-                            onClick={() => openUpdateModal(item, index)}
-                          >
-                            <i className="ti ti-edit"></i> Update Stock
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    filteredData.map((item, index) => {
+                      const itemKey = `${item.productId}-${item.sku}`;
+                      const isRecentlyUpdated = recentlyUpdatedItems.has(itemKey);
+                      
+                      return (
+                        <tr key={`${item.productId}-${index}`} className={isRecentlyUpdated ? 'table-success' : ''}>
+                          <td>{item.productName}</td>
+                          <td>{item.variantName}</td>
+                          <td><code>{item.sku}</code></td>
+                          <td>
+                            <span className="fw-bold text-info">
+                              {typeof item.openingStock === 'number' ? item.openingStock : 0}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`fw-bold ${
+                              (typeof item.currentStock === 'number' && item.currentStock <= item.minimumStock)
+                                ? 'text-danger' : 'text-success'}`}>
+                              {typeof item.currentStock === 'number' ? item.currentStock : 0}
+                              {isRecentlyUpdated && <i className="ti ti-check-circle ms-1 text-success"></i>}
+                            </span>
+                          </td>
+                          <td>{item.minimumStock}</td>
+                          <td>{item.reorderLevel}</td>
+                          <td>{getStockStatusBadge(item.stockStatus, item.currentStock, item.minimumStock, item.reorderLevel)}</td>
+                          <td>{item.category}</td>
+                          <td>{item.brand}</td>
+                          <td>
+                            <button 
+                              className="btn btn-sm btn-primary me-2"
+                              onClick={() => openUpdateModal(item, index)}
+                            >
+                              <i className="ti ti-edit"></i> Update Stock
+                            </button>
+                            <button
+                              className="btn btn-sm btn-info"
+                              onClick={() => {
+                                window.location.href = `/stock-dashboard?productId=${item.productId}`;
+                              }}
+                              title="View in Stock Dashboard"
+                            >
+                              <i className="ti ti-eye"></i> View Dashboard
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
