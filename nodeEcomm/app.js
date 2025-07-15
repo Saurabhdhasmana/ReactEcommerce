@@ -674,7 +674,6 @@ app.post('/api/stock/initialize', async (req, res) => {
         updated++;
       }
     }
-    
     res.json({ 
       message: `Stock data initialized for ${updated} products`,
       updated 
